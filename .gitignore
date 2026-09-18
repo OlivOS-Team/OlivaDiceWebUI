@@ -1,0 +1,8 @@
+integration-real/
+bak/
+dist/OlivaDiceWebUI/
+frontend/node_modules/
+frontend/.vite/
+**/__pycache__/
+**/*.pyc
+.DS_Store
