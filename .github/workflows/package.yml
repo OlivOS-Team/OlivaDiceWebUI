@@ -3,7 +3,6 @@ name: Build and package
 on:
   push:
     branches: [main]
-    tags: ['v*']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -24,10 +23,6 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
-      - name: Check release version
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          test "$GITHUB_REF_NAME" = "v$(python3 -c 'import json; print(json.load(open("OlivaDiceWebUI/app.json"))["version"])')"
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
       - name: Build frontend
@@ -43,12 +38,13 @@ jobs:
           if-no-files-found: error
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: package
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v7
         with:
           name: OlivaDiceWebUI-package
@@ -56,4 +52,4 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/*.zip --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes
+        run: python3 scripts/publish_release.py dist/*.zip

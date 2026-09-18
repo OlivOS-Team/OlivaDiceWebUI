@@ -10,6 +10,7 @@
 | `OlivaDiceWebUI/` | OlivOS 插件与已构建的静态页面，可直接复制到 `plugin/app/` |
 | `tests/` | 后端接口与页面服务测试、无需真实账号的演示服务 |
 | `scripts/package.py` | 从当前源码生成 OlivOS 安装 ZIP |
+| `scripts/publish_release.py` | 为通过验证的 `main` 构建编号并发布 Release |
 | [Releases](https://github.com/ShiaNyaa/OlivaDiceWebUI/releases/latest) | 自动构建的安装 ZIP 下载页 |
 
 ## 管理范围
@@ -29,7 +30,7 @@
 ## 安装与打开
 
 1. 在目标机器的 OlivOS 中安装 OlivaDiceCore；需要账号迁移、备份或市场时，再安装对应的 OlivaDiceMaster / OlivaDiceOdyssey。
-2. 从 [最新 Release](https://github.com/ShiaNyaa/OlivaDiceWebUI/releases/latest) 下载 `OlivaDiceWebUI-<版本号>.zip`，解压到 OlivOS 的 `plugin/app/`；也可以直接复制本仓库的 `OlivaDiceWebUI/` 目录。安装结果应是 `plugin/app/OlivaDiceWebUI/app.json`，并包含 Python 文件、说明 JSON 和 `web/` 构建产物。
+2. 从 [最新 Release](https://github.com/ShiaNyaa/OlivaDiceWebUI/releases/latest) 下载 `OlivaDiceWebUI-<版本号>.zip`，解压到 OlivOS 的 `plugin/app/`。开发调试时也可以先构建前端，再复制本仓库的 `OlivaDiceWebUI/` 目录。安装结果应是 `plugin/app/OlivaDiceWebUI/app.json`，并包含 Python 文件、说明 JSON 和 `web/` 构建产物。
 3. 启动 OlivOS，默认在运行 OlivOS 的机器上访问 `http://127.0.0.1:8765/`。远程访问见下一节。若宿主菜单可用，也可点击“打开青果骰 WebUI”。
 4. 首次启动会生成 `plugin/data/OlivaDiceWebUI/admin-token.txt`，把其中的令牌输入页面。令牌只存在当前浏览器标签页的 `sessionStorage` 中，关闭标签页后需重新输入。
 
@@ -67,13 +68,17 @@ python3 -m unittest discover -s tests -v
 python3 scripts/package.py
 ```
 
-构建结果写入 `OlivaDiceWebUI/web/`。`python3 scripts/package.py` 会在本地生成 `dist/` 安装包；该目录不提交到 Git。推送到 `main` 或提交 PR 时，GitHub Actions 会运行构建和测试，并提供工作流附件；推送与 `OlivaDiceWebUI/app.json` 版本一致的 `v<版本号>` 标签时，会自动创建附带安装 ZIP 的 Release。无需真实账号的演示服务：
+构建结果写入 `OlivaDiceWebUI/web/`。`python3 scripts/package.py` 会在本地生成 `dist/` 安装包；该目录不提交到 Git。无需真实账号的演示服务：
 
 ```sh
 python3 tests/demo_server.py
 ```
 
 访问 `http://127.0.0.1:8765/`，测试令牌为 `oliva-demo-2026`。演示数据只保存在测试进程内，重启后复原。
+
+## 版本与自动发布
+
+推送到 `main` 后，GitHub Actions 会构建前端、运行测试并打包。成功后按北京时间当天已有的发布标签递增编号，从 `1` 开始，例如当天的第一版为 `v20260918(1)`。CI 会把安装 ZIP 中 `app.json` 的版本写成 `20260918(1)`，并在 Release 附上同名 ZIP。PR 和手动运行只生成工作流附件，不占发布编号。仓库里的 `app.json` 保留源码版本；安装包内的版本以对应 Release 为准。
 
 ## 真实 OlivOS 联调
 
