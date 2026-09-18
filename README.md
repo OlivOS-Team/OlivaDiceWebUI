@@ -1,6 +1,6 @@
 # OlivaDiceWebUI
 
-青果骰的跨平台浏览器管理界面，作为 OlivOS 插件与 OlivaDiceCore 在同一进程中运行。它覆盖 OlivaDiceNativeGUI 的主要管理流程，无需 Tk 窗口。仓库内包含完整的 React、Vite、Tailwind 前端源码、Python 插件、测试和构建脚本；前端沿用 [Dice!Next WebUI](https://github.com/DiceZone/Dice-Next-WebUI) 的组件与字体资源，运行时不依赖 Dice!Next 后端。
+青果骰的跨平台浏览器管理界面，作为 OlivOS 插件与 OlivaDiceCore 在同一进程中运行。它覆盖 OlivaDiceNativeGUI 的主要管理流程，无需 Tk 窗口。仓库内包含完整的 React、Vite、Tailwind 前端源码、Python 插件、测试和构建脚本。
 
 ## 仓库结构
 
@@ -10,7 +10,7 @@
 | `OlivaDiceWebUI/` | OlivOS 插件与已构建的静态页面，可直接复制到 `plugin/app/` |
 | `tests/` | 后端接口与页面服务测试、无需真实账号的演示服务 |
 | `scripts/package.py` | 从当前源码生成 OlivOS 安装 ZIP |
-| `dist/OlivaDiceWebUI-0.2.0.zip` | 可直接安装的 ZIP |
+| [Releases](https://github.com/ShiaNyaa/OlivaDiceWebUI/releases/latest) | 自动构建的安装 ZIP 下载页 |
 
 ## 管理范围
 
@@ -29,7 +29,7 @@
 ## 安装与打开
 
 1. 在目标机器的 OlivOS 中安装 OlivaDiceCore；需要账号迁移、备份或市场时，再安装对应的 OlivaDiceMaster / OlivaDiceOdyssey。
-2. 将 `dist/OlivaDiceWebUI-0.2.0.zip` 解压到 OlivOS 的 `plugin/app/`，或直接复制本仓库的 `OlivaDiceWebUI/` 目录。安装结果应是 `plugin/app/OlivaDiceWebUI/app.json`，并包含 Python 文件、说明 JSON 和 `web/` 构建产物。
+2. 从 [最新 Release](https://github.com/ShiaNyaa/OlivaDiceWebUI/releases/latest) 下载 `OlivaDiceWebUI-<版本号>.zip`，解压到 OlivOS 的 `plugin/app/`；也可以直接复制本仓库的 `OlivaDiceWebUI/` 目录。安装结果应是 `plugin/app/OlivaDiceWebUI/app.json`，并包含 Python 文件、说明 JSON 和 `web/` 构建产物。
 3. 启动 OlivOS，默认在运行 OlivOS 的机器上访问 `http://127.0.0.1:8765/`。远程访问见下一节。若宿主菜单可用，也可点击“打开青果骰 WebUI”。
 4. 首次启动会生成 `plugin/data/OlivaDiceWebUI/admin-token.txt`，把其中的令牌输入页面。令牌只存在当前浏览器标签页的 `sessionStorage` 中，关闭标签页后需重新输入。
 
@@ -67,7 +67,7 @@ python3 -m unittest discover -s tests -v
 python3 scripts/package.py
 ```
 
-构建结果写入 `OlivaDiceWebUI/web/`。`python3 scripts/package.py` 会更新 `dist/` 中的安装包。无需真实账号的演示服务：
+构建结果写入 `OlivaDiceWebUI/web/`。`python3 scripts/package.py` 会在本地生成 `dist/` 安装包；该目录不提交到 Git。推送到 `main` 或提交 PR 时，GitHub Actions 会运行构建和测试，并提供工作流附件；推送与 `OlivaDiceWebUI/app.json` 版本一致的 `v<版本号>` 标签时，会自动创建附带安装 ZIP 的 Release。无需真实账号的演示服务：
 
 ```sh
 python3 tests/demo_server.py
@@ -86,5 +86,7 @@ python3 tests/demo_server.py
 ## 实现说明
 
 WebUI 调用 Core 和 Master 已有的内存对象与保存函数，配置仍存放在原来的数据目录中，不修改 Core、Master 或 OlivOS 源码。WebUI 自身的写入由同一把锁串行化。JSON 请求上限为 4 MiB，牌堆文件为 12 MiB，账号 ZIP 为 100 MiB；文件路径和扩展名在服务端校验。跨插件线程同时修改同一份 Core 数据，以及不同 OlivOS 发行版的实际加载行为，仍需用真实账号回归验证。部分 Core 设置的运行效果取决于相应模块的重载时机。
+
+## 致谢与许可
 
 本项目复用了 AGPL-3.0 系列项目的代码与资源：[Dice!Next WebUI](https://github.com/DiceZone/Dice-Next-WebUI) 的部分前端组件、样式、构建配置和字体资源，以及 OlivaDiceNativeGUI 的回复词、配置项说明文本。本仓库附有 AGPL-3.0 许可证。

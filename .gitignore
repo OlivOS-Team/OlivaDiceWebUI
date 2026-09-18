@@ -1,6 +1,6 @@
 integration-real/
 bak/
-dist/OlivaDiceWebUI/
+dist/
 frontend/node_modules/
 frontend/.vite/
 **/__pycache__/
