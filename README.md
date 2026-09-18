@@ -20,10 +20,11 @@
 | 工作台 | 账号概况、配置及回复数量、牌堆索引、复制 `.master` 认证指令 |
 | 账号与骰主 | 切换账号、管理骰主、建立及解除主从关系、账号数据复制、ZIP 导入导出 |
 | 核心配置 | Core 固定配置和运行时扩展整数配置、通知群与心跳地址列表、单项恢复或删除、JSON 导入导出、磁盘刷新、恢复默认 |
-| 回复词 | 搜索、编辑、新增及删除自定义键、单项恢复、恢复模块列表、JSON 导入导出、磁盘刷新、批量恢复 |
+| 回复词 | 全量搜索与分页、编辑、新增及删除自定义键、单项恢复、恢复模块列表、JSON 导入导出、磁盘刷新、批量恢复 |
 | 帮助文档 | 搜索、编辑、新增及删除自定义词条 |
-| 牌堆管理 | 已加载牌堆与分组、本地文件安装及删除、重新加载；安装 OlivaDiceOdyssey 后可浏览及安装 Extiverse 牌堆 |
+| 牌堆管理 | 按账号或全局范围查看已加载牌堆与分组、安装及删除本地文件、重新加载；安装 OlivaDiceOdyssey 后可浏览及安装 Extiverse 牌堆 |
 | 自动备份 | 安装 OlivaDiceMaster 后编辑计划、JSON 导入导出、磁盘刷新、单项及全部恢复 |
+| 服务设置 | 在页面中配置监听地址、端口和远程访问地址，保存后重启 OlivOS 生效 |
 
 账号关系、数据迁移和备份需要 OlivaDiceMaster；牌堆市场需要 OlivaDiceOdyssey。缺少可选插件时，相应页面会显示原因。WebUI 管理的是青果骰插件数据，不提供 OlivOS 自身的机器人登录和宿主进程控制。
 
@@ -36,11 +37,11 @@
 
 所有 API 都需要令牌；请勿将令牌文件加入版本库或公开目录。WebUI 可以在支持 OlivOS 和 Core 的 Windows、macOS 或 Linux 环境中使用；实际宿主兼容性仍取决于所安装的 OlivOS 发行版及其他插件。
 
-如需更换端口，在启动 OlivOS 前设置环境变量 `OLIVADICE_WEBUI_PORT`，例如 `OLIVADICE_WEBUI_PORT=8766 python main.py`。
+登录后可在“系统 → 服务设置”修改监听地址、端口与远程访问地址。配置保存在 OlivOS 运行目录的 `plugin/data/OlivaDiceWebUI/network.json`，重启 OlivOS 后生效。已有环境变量 `OLIVADICE_WEBUI_BIND`、`OLIVADICE_WEBUI_PORT` 和 `OLIVADICE_WEBUI_PUBLIC_ORIGIN` 仍可使用，并优先于页面保存值；页面会标出被环境变量覆盖的字段。
 
 ## 远程访问
 
-WebUI 使用当前浏览器地址访问同源 API。默认监听 `127.0.0.1`，避免未配置访问地址时意外对外开放。局域网或 VPN 中直接访问时，在启动 OlivOS 前设置监听地址和浏览器实际使用的来源地址：
+WebUI 使用当前浏览器地址访问同源 API。默认监听 `127.0.0.1`。局域网或 VPN 中直接访问时，可在“服务设置”填入监听地址 `0.0.0.0`、端口，以及浏览器实际使用的远程访问地址，例如 `http://192.168.1.10:8765`，然后重启 OlivOS。也可以在启动前使用环境变量：
 
 ```sh
 OLIVADICE_WEBUI_BIND=0.0.0.0 \
@@ -50,7 +51,7 @@ python main.py
 
 把示例 IP 换成 OlivOS 主机的地址，然后从其他设备打开该 URL。`OLIVADICE_WEBUI_PUBLIC_ORIGIN` 必须与浏览器地址栏里的协议、域名/IP、端口一致，不含路径。服务端会校验 `Host` 与写入请求的 `Origin`，不匹配时拒绝访问。
 
-通过 HTTPS 反向代理公开时，保留默认的本机监听，并设置 `OLIVADICE_WEBUI_PUBLIC_ORIGIN=https://dice.example.com`；代理转发到 `127.0.0.1:8765`，且保留原始 `Host` 头。公网访问应使用 HTTPS 或 VPN，避免管理令牌通过明文 HTTP 传输。也可以通过 SSH 端口转发访问本机监听的服务：`ssh -L 8765:127.0.0.1:8765 user@server`。
+通过 HTTPS 反向代理公开时，保留默认的本机监听，并在“服务设置”的远程访问地址填写 `https://dice.example.com`（或使用 `OLIVADICE_WEBUI_PUBLIC_ORIGIN` 环境变量）；代理转发到 `127.0.0.1:8765`，且保留原始 `Host` 头。公网访问应使用 HTTPS 或 VPN，避免管理令牌通过明文 HTTP 传输。也可以通过 SSH 端口转发访问本机监听的服务：`ssh -L 8765:127.0.0.1:8765 user@server`。
 
 直接打开 `index.html` 只是静态外观预览；`file://` 无法连接本机 API。
 

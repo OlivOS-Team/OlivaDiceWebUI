@@ -18,7 +18,9 @@ class Event:
     @staticmethod
     def menu(plugin_event, Proc):
         if plugin_event.data.event == 'OlivaDiceWebUI_001':
-            url = 'http://127.0.0.1:{}/'.format(OlivaDiceWebUI.server.PORT)
+            bind = OlivaDiceWebUI.server.BIND_HOST
+            host = '127.0.0.1' if bind == '0.0.0.0' else bind
+            url = 'http://{}:{}/'.format(host, OlivaDiceWebUI.server.PORT)
             try:
                 if not webbrowser.open(url):
                     Proc.log(2, 'OlivaDiceWebUI: 请在本机浏览器打开 ' + url)

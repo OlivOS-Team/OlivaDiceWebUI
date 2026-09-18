@@ -7,6 +7,7 @@ import mimetypes
 import os
 import re
 import secrets
+import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -17,15 +18,13 @@ from . import deck_management, gui_parity, service
 
 CONFIG_DIR = Path('./plugin/data/OlivaDiceWebUI')
 TOKEN_FILE = CONFIG_DIR / 'admin-token.txt'
+NETWORK_FILE = CONFIG_DIR / 'network.json'
 WEB_ROOT = Path(__file__).with_name('web')
-PORT = int(os.environ.get('OLIVADICE_WEBUI_PORT', '8765'))
-if not 1 <= PORT <= 65535:
-    raise ValueError('OLIVADICE_WEBUI_PORT 必须是 1–65535 的端口')
-BIND_HOST = os.environ.get('OLIVADICE_WEBUI_BIND', '127.0.0.1').strip()
-try:
-    _bind_address = ipaddress.IPv4Address(BIND_HOST)
-except ipaddress.AddressValueError:
-    raise ValueError('OLIVADICE_WEBUI_BIND 必须是 IPv4 地址') from None
+APP_FILE = Path(__file__).with_name('app.json')
+DEFAULT_NETWORK = {'bind': '127.0.0.1', 'port': 8765, 'publicOrigin': ''}
+ENV_NETWORK = {'bind': 'OLIVADICE_WEBUI_BIND', 'port': 'OLIVADICE_WEBUI_PORT',
+               'publicOrigin': 'OLIVADICE_WEBUI_PUBLIC_ORIGIN'}
+_network_lock = threading.RLock()
 
 
 def _parse_origin(value):
@@ -43,10 +42,81 @@ def _parse_origin(value):
     return '{}://{}'.format(parsed.scheme, parsed.netloc.lower())
 
 
-_public_origin_setting = os.environ.get('OLIVADICE_WEBUI_PUBLIC_ORIGIN', '').strip()
-PUBLIC_ORIGIN = _parse_origin(_public_origin_setting) if _public_origin_setting else None
-if not _bind_address.is_loopback and not PUBLIC_ORIGIN:
-    raise ValueError('远程监听时必须设置 OLIVADICE_WEBUI_PUBLIC_ORIGIN')
+def _validate_network(value):
+    if not isinstance(value, dict) or set(value) != set(DEFAULT_NETWORK):
+        raise ValueError('服务设置格式无效')
+    bind = value['bind']
+    port = value['port']
+    origin = value['publicOrigin']
+    if not isinstance(bind, str):
+        raise ValueError('监听地址必须是 IPv4 地址')
+    try:
+        bind_address = ipaddress.IPv4Address(bind.strip())
+    except ipaddress.AddressValueError:
+        raise ValueError('监听地址必须是 IPv4 地址') from None
+    if isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535:
+        raise ValueError('端口必须是 1–65535 的整数')
+    if not isinstance(origin, str):
+        raise ValueError('远程访问地址必须是 HTTP(S) 来源地址')
+    origin = origin.strip()
+    public_origin = _parse_origin(origin) if origin else ''
+    if not bind_address.is_loopback and not public_origin:
+        raise ValueError('监听非本机地址时，必须填写远程访问地址')
+    return {'bind': str(bind_address), 'port': port, 'publicOrigin': public_origin}
+
+
+def _read_network():
+    if not NETWORK_FILE.is_file():
+        return DEFAULT_NETWORK.copy()
+    return _validate_network(json.loads(NETWORK_FILE.read_text(encoding='utf-8')))
+
+
+def _effective_network(saved):
+    value = saved.copy()
+    for key, name in ENV_NETWORK.items():
+        if name in os.environ:
+            raw = os.environ[name].strip()
+            if key == 'port':
+                try:
+                    value[key] = int(raw)
+                except ValueError:
+                    raise ValueError('{} 必须是 1–65535 的端口'.format(name)) from None
+            else:
+                value[key] = raw
+    return _validate_network(value)
+
+
+def network_state():
+    with _network_lock:
+        saved = _read_network()
+        after_restart = _effective_network(saved)
+        active = {'bind': BIND_HOST, 'port': PORT, 'publicOrigin': PUBLIC_ORIGIN or ''}
+        return {'active': active, 'saved': saved, 'afterRestart': after_restart,
+                'environmentOverrides': {key: name in os.environ for key, name in ENV_NETWORK.items()},
+                'restartRequired': after_restart != active}
+
+
+def save_network(value):
+    validated = _validate_network(value)
+    _effective_network(validated)
+    with _network_lock:
+        NETWORK_FILE.parent.mkdir(parents=True, exist_ok=True)
+        fd, name = tempfile.mkstemp(prefix='network-', suffix='.tmp', dir=NETWORK_FILE.parent)
+        temporary = Path(name)
+        try:
+            with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+                json.dump(validated, stream, ensure_ascii=False, indent=2)
+                stream.write('\n')
+            os.replace(temporary, NETWORK_FILE)
+        finally:
+            temporary.unlink(missing_ok=True)
+        return network_state()
+
+
+_startup_network = _effective_network(_read_network())
+BIND_HOST = _startup_network['bind']
+PORT = _startup_network['port']
+PUBLIC_ORIGIN = _startup_network['publicOrigin'] or None
 _server = None
 _thread = None
 
@@ -73,9 +143,13 @@ def _token():
     return token
 
 
+def plugin_version():
+    return json.loads(APP_FILE.read_text(encoding='utf-8'))['version']
+
+
 def handler_factory(proc, token):
     class Handler(BaseHTTPRequestHandler):
-        server_version = 'OlivaDiceWebUI/0.2.0'
+        server_version = 'OlivaDiceWebUI/{}'.format(plugin_version())
 
         def log_message(self, format, *args):
             # Avoid logging authorization headers or reply contents.
@@ -147,7 +221,9 @@ def handler_factory(proc, token):
             bot_hash = query.get('bot', ['unity'])[0]
             try:
                 if path.path == '/api/accounts':
-                    self._send(200, {'accounts': service.accounts(proc)})
+                    self._send(200, {'accounts': service.accounts(proc), 'version': plugin_version()})
+                elif path.path == '/api/server-config':
+                    self._send(200, network_state())
                 elif path.path == '/api/switches':
                     self._send(200, {'switches': service.switches(proc, bot_hash)})
                 elif path.path == '/api/replies':
@@ -204,6 +280,9 @@ def handler_factory(proc, token):
                 data = json.loads(self.rfile.read(int(length)))
                 if not isinstance(data, dict):
                     raise service.InvalidInput('请求格式错误')
+                if path.path == '/api/server-config':
+                    self._send(200, save_network(data))
+                    return
                 bot_hash = data.get('bot')
                 if not isinstance(bot_hash, str):
                     raise service.InvalidInput('请选择账号')

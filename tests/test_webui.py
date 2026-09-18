@@ -1,6 +1,7 @@
 import http.client
 import io
 import json
+import os
 import sys
 import tempfile
 import threading
@@ -9,6 +10,7 @@ import unittest
 import zipfile
 from http.server import HTTPServer
 from pathlib import Path
+from unittest.mock import patch
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -62,8 +64,8 @@ class WebUITest(unittest.TestCase):
         )
         fake.drawCardData = types.SimpleNamespace(
             dictDeckTemp={'基础': ['X']},
-            dictDeck={'bot-1': {'基础': ['X'], 'A': ['B']}},
-            dictDeckIndex={'bot-1': {'sample.json': ['A', 'B']}},
+            dictDeck={'bot-1': {'基础': ['X'], 'A': ['B']}, 'unity': {'基础': ['X'], 'Global': ['G']}},
+            dictDeckIndex={'bot-1': {'sample.json': ['A', 'B']}, 'unity': {'shared.json': ['Global']}},
         )
         fake.drawCard = types.SimpleNamespace(reloadDeck=lambda: None)
         self.previous = sys.modules.get('OlivaDiceCore')
@@ -88,6 +90,13 @@ class WebUITest(unittest.TestCase):
         with self.assertRaises(service.InvalidInput):
             service.set_reply(FakeProc(), 'bot-1', 'unknown', 'x')
 
+    def test_more_than_one_thousand_replies_are_available(self):
+        values = {f'strCustom{index:04d}': f'回复 {index}' for index in range(1001)}
+        self.fake.msgCustom.dictStrCustomDict['bot-1'] = values
+        result = service.replies(FakeProc(), 'bot-1')
+        self.assertEqual(len(result), 1001)
+        self.assertEqual(result[-1]['key'], 'strCustom1000')
+
     def test_extended_service_routes_to_core_and_validates(self):
         proc = FakeProc()
         self.assertEqual(service.set_reply(proc, 'bot-1', 'strHello', reset=True), '默认回复')
@@ -102,6 +111,8 @@ class WebUITest(unittest.TestCase):
         self.assertEqual(service.decks(proc, 'bot-1')[0]['name'], '内置牌堆')
         self.assertEqual(service.decks(proc, 'bot-1')[1]['count'], 2)
         self.assertEqual(service.deck_group_count(proc, 'bot-1'), 2)
+        self.assertEqual(service.decks(proc, 'unity')[1]['name'], 'shared.json')
+        self.assertEqual(service.deck_group_count(proc, 'unity'), 2)
         self.assertTrue(service.reload_decks(proc))
         self.assertEqual(service.set_backup(proc, {'isBackup': 1, 'startDate': '2026-09-17',
             'passDay': 2, 'backupTime': '05:00:00', 'maxBackupCount': 3})['settings']['passDay'], 2)
@@ -135,9 +146,12 @@ class WebUITest(unittest.TestCase):
         self.assertEqual(deck_management.deck_files(proc, 'bot-1')[0]['name'], 'mydeck.json')
         self.assertEqual(len(deck_management.deck_files(proc, 'bot-1')), 2)
         self.assertEqual(deck_management.deck_files(proc, 'unity'), [])
+        deck_management.install_file(proc, 'unity', 'classic', 'shared.json', b'{"Global":["G"]}')
+        self.assertEqual(deck_management.deck_files(proc, 'unity')[0]['scope'], 'unity')
         with self.assertRaises(service.InvalidInput):
             deck_management.install_file(proc, 'bot-1', 'classic', '../evil.json', b'{}')
         self.assertTrue(deck_management.remove_file(proc, 'bot-1', 'classic', 'mydeck.json'))
+        self.assertTrue(deck_management.remove_file(proc, 'unity', 'classic', 'shared.json'))
         with self.assertRaises(service.InvalidInput):
             gui_parity._check_zip(b'not a zip')
         invalid_zip = io.BytesIO()
@@ -212,7 +226,9 @@ class WebUITest(unittest.TestCase):
         httpd = HTTPServer(('127.0.0.1', 0), server.handler_factory(FakeProc(), 'test-token'))
         original_port = server.PORT
         original_public_origin = server.PUBLIC_ORIGIN
+        original_network_file = server.NETWORK_FILE
         server.PORT = httpd.server_port
+        server.NETWORK_FILE = Path(self.temp_dir.name) / 'network-http.json'
         thread = threading.Thread(target=httpd.serve_forever, daemon=True)
         thread.start()
         try:
@@ -226,7 +242,10 @@ class WebUITest(unittest.TestCase):
 
             self.assertEqual(request('GET', '/api/accounts')[0], 401)
             auth = {'Authorization': 'Bearer test-token', 'Content-Type': 'application/json'}
-            self.assertEqual(request('GET', '/api/accounts', headers=auth)[0], 200)
+            self.assertEqual(request('GET', '/api/accounts', headers=auth)[1]['version'], server.plugin_version())
+            self.assertEqual(request('GET', '/api/server-config', headers=auth)[0], 200)
+            network = json.dumps({'bind': '127.0.0.1', 'port': 9876, 'publicOrigin': ''})
+            self.assertEqual(request('POST', '/api/server-config', network, auth)[1]['saved']['port'], 9876)
             payload = json.dumps({'bot': 'bot-1', 'key': 'globalEnable', 'value': 0})
             self.assertEqual(request('POST', '/api/switches', payload,
                                      dict(auth, Origin='https://evil.example'))[0], 403)
@@ -245,6 +264,9 @@ class WebUITest(unittest.TestCase):
             binary = dict(auth, **{'Content-Type': 'application/octet-stream'})
             self.assertEqual(request('POST', '/api/deck-files/upload?bot=bot-1&kind=classic&name=sample.json', b'{"A":["B"]}', binary)[0], 200)
             self.assertEqual(request('GET', '/api/deck-files?bot=bot-1', headers=auth)[1]['files'][0]['name'], 'sample.json')
+            self.assertEqual(request('GET', '/api/decks?bot=unity', headers=auth)[1]['decks'][1]['name'], 'shared.json')
+            self.assertEqual(request('POST', '/api/deck-files/upload?bot=unity&kind=classic&name=shared.json', b'{"Global":["G"]}', binary)[0], 200)
+            self.assertEqual(request('GET', '/api/deck-files?bot=unity', headers=auth)[1]['files'][0]['scope'], 'unity')
             self.assertEqual(request('POST', '/api/account/import?bot=bot-1&source=source', b'not a zip', dict(auth, **{'Content-Type': 'application/zip'}))[0], 400)
         finally:
             httpd.shutdown()
@@ -252,6 +274,7 @@ class WebUITest(unittest.TestCase):
             thread.join()
             server.PORT = original_port
             server.PUBLIC_ORIGIN = original_public_origin
+            server.NETWORK_FILE = original_network_file
 
     def test_public_origin_validation(self):
         self.assertEqual(server._parse_origin('https://dice.example:8443'), 'https://dice.example:8443')
@@ -259,6 +282,26 @@ class WebUITest(unittest.TestCase):
                        'https://user@dice.example', 'ftp://dice.example', 'https://dice.example:bad'):
             with self.assertRaises(ValueError):
                 server._parse_origin(origin)
+
+    def test_network_settings_persist_and_validate(self):
+        original = server.NETWORK_FILE
+        server.NETWORK_FILE = Path(self.temp_dir.name) / 'network.json'
+        try:
+            with patch.dict(os.environ, {}, clear=True):
+                saved = server.save_network({'bind': '0.0.0.0', 'port': 9876,
+                                             'publicOrigin': 'http://192.168.1.10:9876'})
+                self.assertEqual(saved['afterRestart']['port'], 9876)
+                self.assertTrue(saved['restartRequired'])
+                self.assertEqual(server._read_network()['bind'], '0.0.0.0')
+                before = server.NETWORK_FILE.read_bytes()
+                for invalid in ({'bind': '0.0.0.0', 'port': 9876, 'publicOrigin': ''},
+                                {'bind': '127.0.0.1', 'port': 0, 'publicOrigin': ''},
+                                {'bind': '127.0.0.1', 'port': True, 'publicOrigin': ''}):
+                    with self.assertRaises(ValueError):
+                        server.save_network(invalid)
+                self.assertEqual(server.NETWORK_FILE.read_bytes(), before)
+        finally:
+            server.NETWORK_FILE = original
 
     def test_frontend_bundle_is_served(self):
         httpd = HTTPServer(('127.0.0.1', 0), server.handler_factory(FakeProc(), 'test-token'))
