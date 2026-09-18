@@ -27,7 +27,7 @@ class ReleaseVersionTest(unittest.TestCase):
                 archive.writestr('OlivaDiceWebUI/app.json', json.dumps({'version': 'dev'}))
                 archive.writestr('OlivaDiceWebUI/main.py', 'print("ok")')
             stamped = stamp_archive(original, '20260918(2)')
-            self.assertEqual(stamped.name, 'OlivaDiceWebUI-20260918(2).zip')
+            self.assertEqual(stamped.name, 'OlivaDiceWebUI-20260918.2.zip')
             with ZipFile(stamped) as archive:
                 self.assertEqual(json.loads(archive.read('OlivaDiceWebUI/app.json'))['version'],
                                  '20260918(2)')

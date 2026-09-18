@@ -23,8 +23,12 @@ def next_build_number(refs, day):
 
 
 def stamp_archive(source, version):
-    """Return a ZIP with the release version in both its name and app.json."""
-    target = source.with_name('OlivaDiceWebUI-{}.zip'.format(version))
+    """Return a ZIP with a GitHub-safe name and the exact plugin version."""
+    match = re.fullmatch(r'(\d{8})\(([1-9]\d*)\)', version)
+    if not match:
+        raise ValueError('Invalid release version: {}'.format(version))
+    # GitHub normalizes parentheses in uploaded asset filenames to periods.
+    target = source.with_name('OlivaDiceWebUI-{}.{}.zip'.format(*match.groups()))
     temporary = target.with_suffix('.zip.tmp')
     found_manifest = False
     try:
@@ -79,7 +83,8 @@ def main():
     sha = os.environ['GITHUB_SHA']
     tag = reserve_tag(repo, sha, beijing_day())
     asset = stamp_archive(source, tag[1:])
-    released = gh('release', 'create', tag, str(asset), '--repo', repo,
+    labelled_asset = '{}#OlivaDiceWebUI {}'.format(asset, tag)
+    released = gh('release', 'create', tag, labelled_asset, '--repo', repo,
                   '--verify-tag', '--generate-notes', '--latest')
     print(released.stdout.strip())
 
