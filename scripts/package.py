@@ -27,10 +27,10 @@ def included(source):
             and source.suffix != '.pyc' and source.name != '.DS_Store')
 
 
-def build_archive(plugin, install_name, web_dir, shared_files=()):
+def build_archive(plugin, install_name, web_dir, shared_files=(), suffix='.opk'):
     if not (plugin / web_dir / 'olivadice.html').is_file():
         raise SystemExit('Missing {} frontend build: npm run build --prefix frontend'.format(install_name))
-    target = DIST / '{}-{}.opk'.format(install_name, version(plugin))
+    target = DIST / '{}-{}{}'.format(install_name, version(plugin), suffix)
     with ZipFile(target, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
         for source in sorted(plugin.rglob('*')):
             if included(source):
@@ -46,7 +46,10 @@ def main():
     DIST.mkdir(exist_ok=True)
     return (
         build_archive(OFFICIAL, 'OlivaDiceWebUI', 'webui'),
-        build_archive(STANDALONE, 'OlivaDiceWebUIStandalone', 'web', SHARED_FILES),
+        # OlivOS only auto-discovers *.opk, but a zip is the documented shape for a
+        # plugin that is installed from a directory, so both are emitted.
+        build_archive(STANDALONE, 'OlivaDiceWebUIStandalone', 'web', SHARED_FILES, '.opk'),
+        build_archive(STANDALONE, 'OlivaDiceWebUIStandalone', 'web', SHARED_FILES, '.zip'),
     )
 
 

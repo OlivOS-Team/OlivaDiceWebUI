@@ -1,5 +1,7 @@
 """Token-protected management server with explicit remote origin support."""
 
+import base64
+import binascii
 import hmac
 import ipaddress
 import json
@@ -24,7 +26,16 @@ TOKEN_FILE = CONFIG_DIR / 'admin-token.txt'
 NETWORK_FILE = CONFIG_DIR / 'network.json'
 WEB_ROOT = Path(__file__).with_name('web')
 APP_FILE = Path(__file__).with_name('app.json')
-DEFAULT_NETWORK = {'bind': '127.0.0.1', 'port': 8765, 'publicOrigin': ''}
+# OlivOS imports OPK modules and then removes their extracted plugin/tmp directory.
+# Anything the server still needs at runtime must be captured while the module is
+# being imported, so it survives the host's cleanup of that temporary tree.
+APP_VERSION = json.loads(APP_FILE.read_text(encoding='utf-8'))['version']
+WEB_ASSETS = {}
+for _asset in sorted(WEB_ROOT.rglob('*')) if WEB_ROOT.is_dir() else []:
+    if _asset.is_file():
+        WEB_ASSETS[_asset.relative_to(WEB_ROOT).as_posix()] = _asset.read_bytes()
+
+DEFAULT_NETWORK = {'bind': '0.0.0.0', 'port': 8765, 'publicOrigin': ''}
 ENV_NETWORK = {'bind': 'OLIVADICE_STANDALONE_WEBUI_BIND',
                'port': 'OLIVADICE_STANDALONE_WEBUI_PORT',
                'publicOrigin': 'OLIVADICE_STANDALONE_WEBUI_PUBLIC_ORIGIN'}
@@ -36,13 +47,13 @@ def _parse_origin(value):
     if (parsed.scheme not in ('http', 'https') or not parsed.hostname
             or parsed.username or parsed.password or parsed.path not in ('', '/')
             or parsed.query or parsed.fragment or any(char.isspace() for char in value)):
-        raise ValueError('OLIVADICE_STANDALONE_WEBUI_PUBLIC_ORIGIN 必须是完整的 HTTP(S) 来源地址，不能包含路径')
+        raise ValueError('远程访问地址必须是完整的 HTTP(S) 来源地址，不能包含路径')
     try:
         _ = parsed.port
     except ValueError:
-        raise ValueError('OLIVADICE_STANDALONE_WEBUI_PUBLIC_ORIGIN 的端口无效') from None
-    if parsed.hostname in ('0.0.0.0', '127.0.0.1', 'localhost'):
-        raise ValueError('OLIVADICE_STANDALONE_WEBUI_PUBLIC_ORIGIN 应填写远程访问时使用的地址')
+        raise ValueError('远程访问地址的端口无效') from None
+    if parsed.hostname in ('0.0.0.0', '::'):
+        raise ValueError('远程访问地址应填写远程访问时使用的地址')
     return '{}://{}'.format(parsed.scheme, parsed.netloc.lower())
 
 
@@ -63,9 +74,10 @@ def _validate_network(value):
     if not isinstance(origin, str):
         raise ValueError('远程访问地址必须是 HTTP(S) 来源地址')
     origin = origin.strip()
+    # The origin stays optional: without it the listener still answers on loopback and
+    # on this machine's own interfaces, which is all a plain LAN panel needs. Filling
+    # it in is what additionally admits a domain or a forwarded port.
     public_origin = _parse_origin(origin) if origin else ''
-    if not bind_address.is_loopback and not public_origin:
-        raise ValueError('监听非本机地址时，必须填写远程访问地址')
     return {'bind': str(bind_address), 'port': port, 'publicOrigin': public_origin}
 
 
@@ -117,20 +129,185 @@ def save_network(value):
         return network_state()
 
 
-_startup_network = _effective_network(_read_network())
-BIND_HOST = _startup_network['bind']
-PORT = _startup_network['port']
-PUBLIC_ORIGIN = _startup_network['publicOrigin'] or None
-_server = None
-_thread = None
+def _startup_network():
+    """Resolve the startup network settings without letting one bad value kill the host.
+
+    A network.json left over from an older, stricter build can fail validation. In that
+    case the host must still start, so the file is reported as the problem instead of
+    raising out of OlivOS' plugin loader.
+    """
+    try:
+        saved = _read_network()
+        return saved, _effective_network(saved), ''
+    except (OSError, ValueError) as exc:
+        saved = DEFAULT_NETWORK.copy()
+        return saved, saved, '配置文件不可用（{}），已使用默认设置 {}:{}'.format(
+            exc, DEFAULT_NETWORK['bind'], DEFAULT_NETWORK['port'])
+
+
+def _local_origin_scheme():
+    """Scheme a browser uses when it reaches this server directly."""
+    return 'https' if PUBLIC_ORIGIN and urlsplit(PUBLIC_ORIGIN).scheme == 'https' else 'http'
+
+
+def _interface_addresses():
+    try:
+        import socket
+        return {name for name in socket.gethostbyname_ex(socket.gethostname())[2] if name}
+    except OSError:
+        return set()
+
+
+def _local_hosts():
+    """Host names that legitimately address this listener from a browser.
+
+    The port is deliberately not pinned: a reverse proxy or port forward in front of
+    the server legitimately rewrites the Host header, and pinning the port made the
+    panel reject its own frontend in that setup. The host name still has to match,
+    which keeps DNS rebinding and foreign-origin writes out.
+    """
+    hosts = {'127.0.0.1', 'localhost', '[::1]'}
+    if BIND_IS_LOOPBACK:
+        hosts.add(BIND_HOST)
+    else:
+        hosts.update(_interface_addresses())
+        hosts.add(BIND_HOST)
+    if PUBLIC_ORIGIN:
+        hosts.add(urlsplit(PUBLIC_ORIGIN).hostname.lower())
+    hosts.discard('')
+    return hosts
+
+
+def _hostname_of(host_header):
+    value = (host_header or '').strip().lower()
+    if value.startswith('['):  # bracketed IPv6 literal
+        end = value.find(']')
+        return value[:end + 1] if end != -1 else value
+    return value.rsplit(':', 1)[0] if ':' in value else value
+
+
+def _is_trusted_host(host_header):
+    if not host_header:
+        return False
+    name = _hostname_of(host_header)
+    if not name:
+        return False
+    try:
+        address = ipaddress.ip_address(name.strip('[]'))
+    except ValueError:
+        return name in _local_hosts()
+    return address.is_loopback or address.is_unspecified or str(address) in _local_hosts()
+
+
+def _normalize_origin(origin):
+    parsed = urlsplit(origin)
+    if parsed.scheme not in ('http', 'https') or not parsed.hostname:
+        return None
+    port = parsed.port
+    if port in (None, 443 if parsed.scheme == 'https' else 80):
+        netloc = parsed.hostname.lower()
+    else:
+        netloc = '{}:{}'.format(parsed.hostname.lower(), port)
+    return '{}://{}'.format(parsed.scheme, netloc)
+
+
+def _origin_matches(origin, host_header):
+    """A write is same-origin when the browser's Origin agrees with the request Host."""
+    if not origin:
+        return True
+    supplied = _normalize_origin(origin)
+    if supplied is None:
+        return False
+    expected = _normalize_origin('{}://{}'.format(_local_origin_scheme(), host_header))
+    return expected is not None and supplied == expected
 
 
 def _trusted_origins():
-    origins = {'127.0.0.1:{}'.format(PORT): 'http://127.0.0.1:{}'.format(PORT),
-               'localhost:{}'.format(PORT): 'http://localhost:{}'.format(PORT)}
+    """Convenience view of accepted origins, for diagnostics and the bundled tests."""
+    scheme = _local_origin_scheme()
+    origins = {}
+    for host in sorted(_local_hosts()):
+        origins['{}:{}'.format(host, PORT)] = '{}://{}:{}'.format(scheme, host, PORT)
     if PUBLIC_ORIGIN:
         origins[urlsplit(PUBLIC_ORIGIN).netloc.lower()] = PUBLIC_ORIGIN
     return origins
+
+
+def restore_web_assets():
+    """Re-materialise the frontend bundle where OlivOS registered the plugin page.
+
+    The OPK ships the built page inside the archive, but OlivOS extracts the module to
+    plugin/tmp and deletes that tree right after import. Without this the packaged
+    plugin looks like it is missing its frontend build.
+    """
+    root = WEB_ROOT
+    if not WEB_ASSETS:
+        raise RuntimeError('插件包内缺少前端构建产物，请先在 frontend 目录运行 npm run build 后重新打包')
+    needs_restore = any(not (root / name).is_file() for name in WEB_ASSETS)
+    if not needs_restore:
+        return None
+    restored = 0
+    for name, data in WEB_ASSETS.items():
+        target = root / name
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            current = target.read_bytes() if target.is_file() else None
+            if current != data:
+                target.write_bytes(data)
+            restored += 1
+        except OSError as exc:
+            return '写出 {} 失败：{}'.format(name, exc)
+    return None if restored else '前端构建产物为空'
+
+
+def _snapshot_network():
+    with _network_lock:
+        saved = _read_network()
+        after_restart = _effective_network(saved)
+        active = {'bind': BIND_HOST, 'port': PORT, 'publicOrigin': PUBLIC_ORIGIN or ''}
+        return {'active': active, 'saved': saved, 'afterRestart': after_restart,
+                'environmentOverrides': {key: name in os.environ for key, name in ENV_NETWORK.items()},
+                'restartRequired': after_restart != active,
+                'startupWarning': STARTUP_NETWORK_WARNING,
+                'recoveryWarning': RECOVERY_WARNING}
+
+
+def network_state():
+    try:
+        return _snapshot_network()
+    except (OSError, ValueError) as exc:
+        return {'active': {'bind': BIND_HOST, 'port': PORT, 'publicOrigin': PUBLIC_ORIGIN or ''},
+                'saved': DEFAULT_NETWORK.copy(), 'afterRestart': None,
+                'environmentOverrides': {key: name in os.environ for key, name in ENV_NETWORK.items()},
+                'restartRequired': True, 'startupWarning': '配置文件不可用：{}'.format(exc),
+                'recoveryWarning': RECOVERY_WARNING}
+
+
+def save_network(value):
+    validated = _validate_network(value)
+    _effective_network(validated)
+    with _network_lock:
+        NETWORK_FILE.parent.mkdir(parents=True, exist_ok=True)
+        fd, name = tempfile.mkstemp(prefix='network-', suffix='.tmp', dir=NETWORK_FILE.parent)
+        temporary = Path(name)
+        try:
+            with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+                json.dump(validated, stream, ensure_ascii=False, indent=2)
+                stream.write('\n')
+            os.replace(temporary, NETWORK_FILE)
+        finally:
+            temporary.unlink(missing_ok=True)
+        return _snapshot_network()
+
+
+STARTUP_SAVED, STARTUP_NETWORK, STARTUP_NETWORK_WARNING = _startup_network()
+RECOVERY_WARNING = restore_web_assets()
+BIND_HOST = STARTUP_NETWORK['bind']
+PORT = STARTUP_NETWORK['port']
+PUBLIC_ORIGIN = STARTUP_NETWORK['publicOrigin'] or None
+BIND_IS_LOOPBACK = ipaddress.IPv4Address(BIND_HOST).is_loopback
+_server = None
+_thread = None
 
 
 def _token():
@@ -148,7 +325,7 @@ def _token():
 
 
 def plugin_version():
-    return json.loads(APP_FILE.read_text(encoding='utf-8'))['version']
+    return APP_VERSION
 
 
 def handler_factory(proc, token):
@@ -178,8 +355,29 @@ def handler_factory(proc, token):
         def _error(self, status, message):
             self._send(status, {'error': message})
 
+        def _send_asset(self, name):
+            """Serve the embedded frontend bundle, rebuilding it on disk when needed.
+
+            Reading from the in-memory snapshot keeps the page available even if OlivOS
+            has already removed plugin/tmp, while restore_web_assets() re-creates the
+            copy that the host registered on disk.
+            """
+            body = WEB_ASSETS.get(name)
+            if body is None:
+                self._error(404, '资源不存在')
+                return
+            target = WEB_ROOT / name
+            if not target.is_file():
+                try:
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(body)
+                except OSError:
+                    pass
+            content_type = mimetypes.guess_type(name)[0] or 'application/octet-stream'
+            self._send(200, body, content_type)
+
         def _allowed_host(self):
-            return self.headers.get('Host', '').lower() in _trusted_origins()
+            return _is_trusted_host(self.headers.get('Host'))
 
         def _authorized(self):
             supplied = self.headers.get('Authorization', '')
@@ -189,12 +387,9 @@ def handler_factory(proc, token):
             if not self._allowed_host():
                 self._error(400, 'Host 不受支持')
                 return False
-            if write:
-                origin = self.headers.get('Origin')
-                expected_origin = _trusted_origins().get(self.headers.get('Host', '').lower())
-                if origin and origin != expected_origin:
-                    self._error(403, '请求来源不受支持')
-                    return False
+            if write and not _origin_matches(self.headers.get('Origin'), self.headers.get('Host')):
+                self._error(403, '请求来源不受支持')
+                return False
             if not self._authorized():
                 self._error(401, '需要管理令牌')
                 return False
@@ -206,18 +401,7 @@ def handler_factory(proc, token):
                 self._error(400, 'Host 不受支持')
                 return
             if path.path == '/' or path.path.startswith('/assets/'):
-                name = 'olivadice.html' if path.path == '/' else path.path.lstrip('/')
-                target = (WEB_ROOT / name).resolve()
-                try:
-                    target.relative_to(WEB_ROOT.resolve())
-                except ValueError:
-                    self._error(404, '资源不存在')
-                    return
-                if not target.is_file():
-                    self._error(404, '资源不存在')
-                    return
-                content_type = mimetypes.guess_type(target.name)[0] or 'application/octet-stream'
-                self._send(200, target.read_bytes(), content_type)
+                self._send_asset('olivadice.html' if path.path == '/' else path.path.lstrip('/'))
                 return
             if not self._request_ok():
                 return
@@ -285,7 +469,10 @@ def handler_factory(proc, token):
                 if not isinstance(data, dict):
                     raise service.InvalidInput('请求格式错误')
                 if path.path == '/api/server-config':
-                    self._send(200, save_network(data))
+                    try:
+                        self._send(200, save_network(data))
+                    except ValueError as exc:
+                        self._error(400, str(exc))
                     return
                 bot_hash = data.get('bot')
                 if not isinstance(bot_hash, str):
@@ -354,11 +541,15 @@ def handler_factory(proc, token):
 
 
 def start(proc):
-    global _server, _thread
+    global _server, _thread, RECOVERY_WARNING
     if _server is not None:
         return
-    if not (WEB_ROOT / 'olivadice.html').is_file():
-        raise RuntimeError('缺少前端构建产物，请先在 frontend 目录运行 npm run build')
+    if RECOVERY_WARNING is None:
+        RECOVERY_WARNING = restore_web_assets()
+    if RECOVERY_WARNING is not None:
+        raise RuntimeError('前端构建产物不可用：{}；请先在 frontend 目录运行 npm run build 后重新打包'.format(RECOVERY_WARNING))
+    if STARTUP_NETWORK_WARNING:
+        proc.log(4, 'OlivaDiceWebUIStandalone: {}'.format(STARTUP_NETWORK_WARNING))
     token = _token()
     _server = ThreadingHTTPServer((BIND_HOST, PORT), handler_factory(proc, token))
     _server.daemon_threads = True

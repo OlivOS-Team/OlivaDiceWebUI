@@ -13,6 +13,10 @@ from . import deck_management, gui_parity, service
 
 
 APP_FILE = Path(__file__).with_name('app.json')
+# OlivOS imports OPK modules and then removes their extracted plugin/tmp directory, so
+# neither app.json nor any other package file can be read after startup. Capture the
+# version while the module is still importable, and keep this as the only source of it.
+APP_VERSION = json.loads(APP_FILE.read_text(encoding='utf-8'))['version']
 CHUNK_BYTES = 256 * 1024
 TRANSFER_TTL = 10 * 60
 MAX_TRANSFERS = 8
@@ -37,7 +41,7 @@ def clear_transfers():
 
 
 def plugin_version():
-    return json.loads(APP_FILE.read_text(encoding='utf-8'))['version']
+    return APP_VERSION
 
 
 def _path(value):

@@ -247,6 +247,176 @@ class WebUITest(unittest.TestCase):
         finally:
             standalone_server.NETWORK_FILE = original
 
+    def test_standalone_defaults_to_all_interfaces(self):
+        self.assertEqual(standalone_server.DEFAULT_NETWORK['bind'], '0.0.0.0')
+        self.assertEqual(standalone_server.DEFAULT_NETWORK['port'], 8765)
+        self.assertEqual(standalone_server.DEFAULT_NETWORK['publicOrigin'], '')
+
+    def test_standalone_wildcard_bind_without_public_origin(self):
+        """A wildcard listener must be usable for plain LAN access with no domain."""
+        accepted = standalone_server._validate_network(
+            {'bind': '0.0.0.0', 'port': 8765, 'publicOrigin': ''})
+        self.assertEqual(accepted['bind'], '0.0.0.0')
+        self.assertEqual(accepted['publicOrigin'], '')
+        saved = standalone_server._validate_network(
+            {'bind': '127.0.0.1', 'port': 8765, 'publicOrigin': ''})
+        self.assertEqual(saved['bind'], '127.0.0.1')
+        with_origin = standalone_server._validate_network(
+            {'bind': '0.0.0.0', 'port': 8765, 'publicOrigin': 'http://dice.example.com'})
+        self.assertEqual(with_origin['publicOrigin'], 'http://dice.example.com')
+        for wildcard in ('0.0.0.0/0', 'localhost', 'not-an-ip'):
+            with self.assertRaises(ValueError):
+                standalone_server._validate_network(
+                    {'bind': wildcard, 'port': 8765, 'publicOrigin': ''})
+
+    def test_standalone_public_origin_rejects_unnavigable_addresses(self):
+        for value in ('0.0.0.0:8765', 'http://0.0.0.0:8765', 'http://[::]', 'ftp://x.test',
+                      'http://x.test/path', 'http://user:pw@x.test'):
+            with self.assertRaises(ValueError, msg=value):
+                standalone_server._validate_network(
+                    {'bind': '0.0.0.0', 'port': 8765, 'publicOrigin': value})
+
+    def test_standalone_trusted_origins_cover_every_reachable_host(self):
+        original = (standalone_server.BIND_HOST, standalone_server.BIND_IS_LOOPBACK,
+                    standalone_server.PORT, standalone_server.PUBLIC_ORIGIN)
+        try:
+            standalone_server.PORT = 8765
+            standalone_server.PUBLIC_ORIGIN = 'http://10.0.0.5:8765'
+            standalone_server.BIND_HOST, standalone_server.BIND_IS_LOOPBACK = '0.0.0.0', False
+            origins = standalone_server._trusted_origins()
+            self.assertIn('127.0.0.1:8765', origins)
+            self.assertIn('localhost:8765', origins)
+            self.assertEqual(origins['10.0.0.5:8765'], 'http://10.0.0.5:8765')
+        finally:
+            (standalone_server.BIND_HOST, standalone_server.BIND_IS_LOOPBACK,
+             standalone_server.PORT, standalone_server.PUBLIC_ORIGIN) = original
+
+    def test_standalone_menu_opens_loopback_for_wildcard_bind(self):
+        original = (standalone_server.BIND_HOST, standalone_server.BIND_IS_LOOPBACK, standalone_server.PORT)
+        try:
+            standalone_server.BIND_HOST, standalone_server.BIND_IS_LOOPBACK = '0.0.0.0', False
+            self.assertEqual(standalone_main._local_url(), 'http://127.0.0.1:8765/')
+            standalone_server.BIND_HOST, standalone_server.BIND_IS_LOOPBACK = '127.0.0.1', True
+            self.assertEqual(standalone_main._local_url(), 'http://127.0.0.1:8765/')
+            standalone_server.BIND_HOST, standalone_server.BIND_IS_LOOPBACK = '192.168.1.7', False
+            self.assertEqual(standalone_main._local_url(), 'http://192.168.1.7:8765/')
+        finally:
+            standalone_server.BIND_HOST, standalone_server.BIND_IS_LOOPBACK, standalone_server.PORT = original
+
+    def test_frontend_bundle_is_embedded_and_restorable(self):
+        root = Path(__file__).parents[1]
+        page = root / 'OlivaDiceWebUIStandalone/web/olivadice.html'
+        self.assertTrue(page.is_file(), 'standalone frontend must be built before packaging')
+        self.assertIn('olivadice.html', standalone_server.WEB_ASSETS)
+        self.assertIn('assets/olivadice-DmLAIUO-.js', standalone_server.WEB_ASSETS)
+        self.assertIn('assets/olivadice-Dm75JXLS.css', standalone_server.WEB_ASSETS)
+        self.assertEqual(standalone_server.plugin_version(),
+                         json.loads((root / 'OlivaDiceWebUIStandalone/app.json').read_text(encoding='utf-8'))['version'])
+        self.assertEqual(bridge.plugin_version(),
+                         json.loads((root / 'OlivaDiceWebUI/app.json').read_text(encoding='utf-8'))['version'])
+
+    def test_frontend_bundle_survives_removed_plugin_tmp_directory(self):
+        """OlivOS deletes plugin/tmp after import; assets must be rebuilt from memory."""
+        with tempfile.TemporaryDirectory() as scratch:
+            removed_root = Path(scratch) / 'web'
+            original = standalone_server.WEB_ROOT
+            standalone_server.WEB_ROOT = removed_root
+            try:
+                self.assertIsNone(standalone_server.restore_web_assets())
+                for name in standalone_server.WEB_ASSETS:
+                    self.assertTrue((removed_root / name).is_file(), name)
+                httpd = HTTPServer(('127.0.0.1', 0), standalone_server.handler_factory(FakeProc(), 'test-token'))
+                thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    connection = http.client.HTTPConnection('127.0.0.1', httpd.server_port)
+                    connection.request('GET', '/')
+                    response = connection.getresponse()
+                    body = response.read()
+                    connection.close()
+                    self.assertEqual(response.status, 200)
+                    self.assertIn(b'id="root"', body)
+                    self.assertIn('text/html', response.getheader('Content-Type'))
+                finally:
+                    httpd.shutdown()
+                    httpd.server_close()
+                    thread.join()
+            finally:
+                standalone_server.WEB_ROOT = original
+
+    def test_frontend_bundle_is_served_without_any_disk_copy(self):
+        """The in-memory snapshot alone must be able to answer requests."""
+        with tempfile.TemporaryDirectory() as scratch:
+            missing_root = Path(scratch) / 'never-written'
+            original_root = standalone_server.WEB_ROOT
+            original_restore = standalone_server.restore_web_assets
+            standalone_server.WEB_ROOT = missing_root
+            standalone_server.restore_web_assets = lambda: 'skip disk write'
+            try:
+                httpd = HTTPServer(('127.0.0.1', 0), standalone_server.handler_factory(FakeProc(), 'test-token'))
+                thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+                thread.start()
+                try:
+                    for path, marker in (('/', b'id="root"'), ('/assets/olivadice-Dm75JXLS.css', b'')):
+                        connection = http.client.HTTPConnection('127.0.0.1', httpd.server_port)
+                        connection.request('GET', path)
+                        response = connection.getresponse()
+                        body = response.read()
+                        connection.close()
+                        self.assertEqual(response.status, 200, path)
+                        self.assertTrue(body, path)
+                        if marker:
+                            self.assertIn(marker, body)
+                finally:
+                    httpd.shutdown()
+                    httpd.server_close()
+                    thread.join()
+            finally:
+                standalone_server.WEB_ROOT = original_root
+                standalone_server.restore_web_assets = original_restore
+
+    def test_standalone_reports_network_errors_as_bad_request(self):
+        original = standalone_server.NETWORK_FILE
+        standalone_server.NETWORK_FILE = Path(self.temp_dir.name) / 'network.json'
+        try:
+            httpd = HTTPServer(('127.0.0.1', 0), standalone_server.handler_factory(FakeProc(), 'test-token'))
+            original_port = standalone_server.PORT
+            standalone_server.PORT = httpd.server_port
+            thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+            thread.start()
+            try:
+                body = json.dumps({'bind': 'localhost', 'port': 8765, 'publicOrigin': ''}).encode('utf-8')
+                connection = http.client.HTTPConnection('127.0.0.1', httpd.server_port)
+                connection.request('POST', '/api/server-config', body=body, headers={
+                    'Authorization': 'Bearer test-token',
+                    'Content-Type': 'application/json',
+                    'Host': '127.0.0.1:{}'.format(httpd.server_port),
+                })
+                response = connection.getresponse()
+                payload = json.loads(response.read())
+                connection.close()
+                self.assertEqual(response.status, 400)
+                self.assertIn('监听地址', payload['error'])
+            finally:
+                httpd.shutdown()
+                httpd.server_close()
+                thread.join()
+                standalone_server.PORT = original_port
+        finally:
+            standalone_server.NETWORK_FILE = original
+
+    def test_bridge_reads_version_without_package_files(self):
+        """app.json is gone once OlivOS removes plugin/tmp, so the version is cached."""
+        self.assertFalse(hasattr(bridge.plugin_version, '__wrapped__'))
+        original = bridge.APP_FILE
+        bridge.APP_FILE = Path(self.temp_dir.name) / 'gone' / 'app.json'
+        try:
+            self.assertEqual(bridge.plugin_version(), bridge.APP_VERSION)
+            self.assertIsInstance(bridge.plugin_version(), str)
+            self.assertTrue(bridge.plugin_version())
+        finally:
+            bridge.APP_FILE = original
+
     def test_market_install_uses_selected_catalog_entry(self):
         module = types.ModuleType('OlivaDiceOdyssey')
         module.webTool = types.SimpleNamespace(gExtiverseDeck={

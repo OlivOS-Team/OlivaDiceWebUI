@@ -70,11 +70,25 @@ class ReleaseVersionTest(unittest.TestCase):
             original_dist = package_script.DIST
             package_script.DIST = Path(directory)
             try:
-                official, standalone = package_script.main()
+                official, standalone_opk, standalone_zip = package_script.main()
             finally:
                 package_script.DIST = original_dist
             self.assertTrue(official.name.startswith('OlivaDiceWebUI-'))
-            self.assertTrue(standalone.name.startswith('OlivaDiceWebUIStandalone-'))
+            self.assertTrue(official.name.endswith('.opk'))
+            self.assertTrue(standalone_opk.name.startswith('OlivaDiceWebUIStandalone-'))
+            self.assertTrue(standalone_opk.name.endswith('.opk'))
+            self.assertTrue(standalone_zip.name.startswith('OlivaDiceWebUIStandalone-'))
+            self.assertTrue(standalone_zip.name.endswith('.zip'))
+            for standalone in (standalone_opk, standalone_zip):
+                with ZipFile(standalone) as archive:
+                    names = set(archive.namelist())
+                    self.assertIn('app.json', names)
+                    self.assertIn('server.py', names)
+                    self.assertIn('service.py', names)
+                    self.assertNotIn('bridge.py', names)
+                    self.assertIn('web/olivadice.html', names)
+                    self.assertTrue(any(name.startswith('web/assets/') for name in names))
+                    self.assertFalse(any(name.startswith('OlivaDiceWebUIStandalone/') for name in names))
             with ZipFile(official) as archive:
                 names = set(archive.namelist())
                 self.assertIn('app.json', names)
@@ -82,13 +96,6 @@ class ReleaseVersionTest(unittest.TestCase):
                 self.assertIn('service.py', names)
                 self.assertNotIn('server.py', names)
                 self.assertFalse(any(name.startswith('OlivaDiceWebUI/') for name in names))
-            with ZipFile(standalone) as archive:
-                names = set(archive.namelist())
-                self.assertIn('app.json', names)
-                self.assertIn('server.py', names)
-                self.assertIn('service.py', names)
-                self.assertNotIn('bridge.py', names)
-                self.assertFalse(any(name.startswith('OlivaDiceWebUIStandalone/') for name in names))
 
     def test_one_release_receives_both_editions(self):
         with tempfile.TemporaryDirectory() as directory:
