@@ -281,7 +281,11 @@ class WebUITest(unittest.TestCase):
         page = Path(__file__).parents[1] / 'OlivaDiceWebUI/webui/olivadice.html'
         html = page.read_text(encoding='utf-8')
         self.assertIn('id="root"', html)
-        self.assertIn('assets/', html)
+        self.assertIn('<script type="module">', html)
+        self.assertIn('<style>', html)
+        self.assertNotIn('src="./assets/', html)
+        self.assertNotIn('href="./assets/', html)
+        self.assertEqual([path.name for path in page.parent.iterdir()], ['olivadice.html'])
 
 
 if __name__ == '__main__':

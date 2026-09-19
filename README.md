@@ -9,7 +9,7 @@
 | 路径 | 用途 |
 | --- | --- |
 | `frontend/` | React、Vite、Tailwind 前端源码 |
-| `OlivaDiceWebUI/` | OlivOS 插件及已构建的 `webui/` 页面 |
+| `OlivaDiceWebUI/` | OlivOS 插件及已构建的单文件 `webui/` 页面 |
 | `OlivaDiceWebUI/bridge.py` | 官方 WebUI 消息桥的请求分发及分块文件传输 |
 | `tests/` | 后端服务、桥接和打包测试 |
 | `scripts/package.py` | 生成 OlivOS 安装 ZIP |
@@ -54,7 +54,7 @@ python3 -m unittest discover -s tests -v
 python3 scripts/package.py
 ```
 
-构建结果写入 `OlivaDiceWebUI/webui/`，安装包写入 `dist/`。浏览器直接预览只能检查静态布局；完整通信必须在 OlivOS WebUI 的插件 iframe 中验证。
+构建结果写入 `OlivaDiceWebUI/webui/olivadice.html`，JavaScript、CSS 和 Logo 全部内联且不依赖外部资源，以兼容 OlivOS 的无同源插件沙箱。安装包写入 `dist/`。浏览器直接预览只能检查静态布局；完整通信必须在 OlivOS WebUI 的插件 iframe 中验证。
 
 ## 版本与自动发布
 
