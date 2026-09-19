@@ -1,9 +1,35 @@
+from pathlib import Path
+
 from . import bridge, service
+
+
+_WEBUI_ENTRY = Path(__file__).resolve().parent / 'webui' / 'olivadice.html'
+# OlivOS imports OPK modules and then removes their extracted plugin/tmp directory.
+# Keep the self-contained page in memory so init_after can restore the path that
+# the host already registered for its /plugin/<namespace>/ route.
+_WEBUI_DOCUMENT = _WEBUI_ENTRY.read_bytes()
+
+
+def _restore_opk_webui(Proc):
+    plugin = getattr(Proc, 'plugin_models_dict', {}).get('OlivaDiceWebUI', {})
+    root = plugin.get('webui_root')
+    if not isinstance(root, str) or not root:
+        return
+    entry = Path(root) / 'webui' / 'olivadice.html'
+    if entry.is_file():
+        return
+    try:
+        entry.parent.mkdir(parents=True, exist_ok=True)
+        entry.write_bytes(_WEBUI_DOCUMENT)
+        Proc.log(2, 'OlivaDiceWebUI: 已恢复 OPK WebUI 页面资源')
+    except OSError as exc:
+        Proc.log(4, 'OlivaDiceWebUI: 恢复 OPK WebUI 页面失败: {}'.format(exc))
 
 
 class Event:
     @staticmethod
     def init_after(plugin_event, Proc):
+        _restore_opk_webui(Proc)
         if 'OlivaDiceCore' not in Proc.get_plugin_list():
             Proc.log(3, 'OlivaDiceWebUI: OlivaDiceCore 未加载，插件页面暂不可用')
             return
