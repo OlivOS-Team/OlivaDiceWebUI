@@ -2,9 +2,9 @@ name: Build and package
 
 on:
   push:
-    branches: [main]
+    branches: [main, standalone-server]
   pull_request:
-    branches: [main]
+    branches: [main, standalone-server]
   workflow_dispatch:
 
 permissions:

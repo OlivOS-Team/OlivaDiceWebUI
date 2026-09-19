@@ -2,6 +2,8 @@
 
 青果骰的跨平台浏览器管理界面，作为 OlivOS 插件与 OlivaDiceCore 在同一进程中运行。它覆盖 OlivaDiceNativeGUI 的主要管理流程，无需 Tk 窗口。仓库内包含完整的 React、Vite、Tailwind 前端源码、Python 插件、测试和构建脚本。
 
+> 当前 `standalone-server` 分支是插件自行监听端口的独立服务版，默认地址为 `http://127.0.0.1:8765/`。使用 OlivOS 官方 WebUI 插件页面和消息桥的版本请切换到 `main` 分支。
+
 ## 仓库结构
 
 | 路径 | 用途 |
@@ -79,7 +81,7 @@ python3 tests/demo_server.py
 
 ## 版本与自动发布
 
-推送到 `main` 后，GitHub Actions 会构建前端、运行测试并打包。成功后按北京时间当天已有的发布标签递增编号，从 `1` 开始，例如当天的第一版为 `v20260918(1)`。CI 会把安装 ZIP 中 `app.json` 的版本写成 `20260918(1)`。下载文件名使用 GitHub 兼容的 `OlivaDiceWebUI-20260918.1.zip`，Release 页面会显示完整版本号。PR 和手动运行只生成工作流附件，不占发布编号。仓库里的 `app.json` 保留源码版本；安装包内的版本以对应 Release 为准。
+推送到 `standalone-server` 后，GitHub Actions 会构建前端、运行测试并生成可下载的工作流附件，但不会覆盖 `main` 分支发布的官方 WebUI 版 Release。仓库里的 `app.json` 保留源码版本。
 
 ## 真实 OlivOS 联调
 
