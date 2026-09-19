@@ -5,7 +5,7 @@
 @layer base {
   :root {
     /* ── shadcn/ui CSS Variables ──────────────────────── */
-    --background: 0 0% 100%;
+    --background: 210 40% 96.1%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -28,26 +28,34 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    /* Main canvas stays lighter than navigation and cards. */
+    --background: 217.2 25% 16%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 222.2 47.4% 8%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 222.2 47.4% 8%;
     --popover-foreground: 210 40% 98%;
     --primary: 199 100% 61%;
     --primary-foreground: 222.2 47.4% 11.2%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
+    --muted: 217.2 24% 21%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 215 25% 24%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
+    --border: 215 22% 27%;
+    --input: 215 22% 27%;
     --ring: 199 100% 61%;
   }
+}
+
+.banner-shadow {
+  box-shadow: 0 14px 32px rgb(14 116 144 / 0.18);
+}
+.dark .banner-shadow {
+  box-shadow: 0 14px 32px rgb(0 0 0 / 0.38);
 }
 
 @layer base {
