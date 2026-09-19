@@ -1,20 +1,16 @@
-import http.client
+import base64
 import io
 import json
-import os
 import sys
 import tempfile
-import threading
 import types
 import unittest
 import zipfile
-from http.server import HTTPServer
 from pathlib import Path
-from unittest.mock import patch
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from OlivaDiceWebUI import deck_management, gui_parity, main, server, service  # noqa: E402
+from OlivaDiceWebUI import bridge, deck_management, gui_parity, main, service  # noqa: E402
 
 
 class FakeProc:
@@ -27,6 +23,7 @@ class FakeProc:
 
 class WebUITest(unittest.TestCase):
     def setUp(self):
+        bridge.clear_transfers()
         self.temp_dir = tempfile.TemporaryDirectory()
         self.saved_switches = []
         self.saved_replies = []
@@ -73,6 +70,7 @@ class WebUITest(unittest.TestCase):
         self.fake = fake
 
     def tearDown(self):
+        bridge.clear_transfers()
         self.temp_dir.cleanup()
         if self.previous is None:
             del sys.modules['OlivaDiceCore']
@@ -162,17 +160,21 @@ class WebUITest(unittest.TestCase):
         with self.assertRaises(service.InvalidInput):
             deck_management.market_install(proc, 'bot-1', 'unknown', 'Example')
 
-    def test_menu_opens_local_webui(self):
-        import webbrowser
-        original = webbrowser.open
-        opened = []
-        webbrowser.open = lambda url: opened.append(url) or True
-        try:
-            event = types.SimpleNamespace(data=types.SimpleNamespace(event='OlivaDiceWebUI_001'))
-            main.Event.menu(event, FakeProc())
-            self.assertEqual(opened, ['http://127.0.0.1:8765/'])
-        finally:
-            webbrowser.open = original
+    def test_menu_uses_official_webui_bridge(self):
+        replies = []
+        event = types.SimpleNamespace(
+            data=types.SimpleNamespace(
+                namespace='OlivaDiceWebUI',
+                event=bridge.EVENT_REQUEST,
+                webui={'request_id': 'request-1', 'session': 'session-1'},
+                payload={'method': 'GET', 'path': '/api/accounts'},
+            ),
+            send=lambda kind, request_id, payload: replies.append((kind, request_id, payload)) or True,
+        )
+        main.Event.menu(event, FakeProc())
+        self.assertEqual(replies[0][0:2], ('webui', 'request-1'))
+        self.assertTrue(replies[0][2]['ok'])
+        self.assertEqual(replies[0][2]['result']['accounts'][1]['hash'], 'bot-1')
 
     def test_market_install_uses_selected_catalog_entry(self):
         module = types.ModuleType('OlivaDiceOdyssey')
@@ -216,120 +218,70 @@ class WebUITest(unittest.TestCase):
             raw = gui_parity.account_export(FakeProc(), 'bot-1')
             self.assertEqual(gui_parity.account_import(FakeProc(), 'bot-1', 'original', raw), 'imported')
             self.assertEqual(imported, [('bot-1', 'original', b'{}')])
+
+            context = {'session': 'session-download'}
+            started = bridge.download_start(
+                FakeProc(), {'path': '/api/account/export?bot=bot-1'}, context)
+            downloaded = bytearray()
+            offset = 0
+            while offset < started['size']:
+                chunk = bridge.download_chunk(
+                    {'transferId': started['transferId'], 'offset': offset}, context)
+                decoded = base64.b64decode(chunk['data'])
+                downloaded.extend(decoded)
+                offset += len(decoded)
+            self.assertEqual(bytes(downloaded), raw)
         finally:
             if previous is None:
                 del sys.modules['OlivaDiceMaster']
             else:
                 sys.modules['OlivaDiceMaster'] = previous
 
-    def test_http_auth_origin_and_update(self):
-        httpd = HTTPServer(('127.0.0.1', 0), server.handler_factory(FakeProc(), 'test-token'))
-        original_port = server.PORT
-        original_public_origin = server.PUBLIC_ORIGIN
-        original_network_file = server.NETWORK_FILE
-        server.PORT = httpd.server_port
-        server.NETWORK_FILE = Path(self.temp_dir.name) / 'network-http.json'
-        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
-        thread.start()
-        try:
-            def request(method, path, body=None, headers=None):
-                conn = http.client.HTTPConnection('127.0.0.1', httpd.server_port)
-                conn.request(method, path, body=body, headers=headers or {})
-                response = conn.getresponse()
-                result = response.status, json.loads(response.read())
-                conn.close()
-                return result
+    def test_bridge_routes_reads_and_writes(self):
+        proc = FakeProc()
+        accounts = bridge.request(proc, {'method': 'GET', 'path': '/api/accounts'})
+        self.assertEqual(accounts['version'], bridge.plugin_version())
+        self.assertEqual(accounts['accounts'][1]['hash'], 'bot-1')
+        result = bridge.request(proc, {'method': 'POST', 'path': '/api/switches',
+                                      'data': {'bot': 'bot-1', 'key': 'globalEnable', 'value': 0}})
+        self.assertEqual(result, {'value': 0})
+        self.assertEqual(self.fake.console.dictConsoleSwitch['bot-1']['globalEnable'], 0)
+        with self.assertRaises(service.InvalidInput):
+            bridge.request(proc, {'method': 'GET', 'path': 'https://evil.example/api/accounts'})
+        with self.assertRaises(service.InvalidInput):
+            bridge.request(proc, {'method': 'GET', 'path': '/api/server-config'})
 
-            self.assertEqual(request('GET', '/api/accounts')[0], 401)
-            auth = {'Authorization': 'Bearer test-token', 'Content-Type': 'application/json'}
-            self.assertEqual(request('GET', '/api/accounts', headers=auth)[1]['version'], server.plugin_version())
-            self.assertEqual(request('GET', '/api/server-config', headers=auth)[0], 200)
-            network = json.dumps({'bind': '127.0.0.1', 'port': 9876, 'publicOrigin': ''})
-            self.assertEqual(request('POST', '/api/server-config', network, auth)[1]['saved']['port'], 9876)
-            payload = json.dumps({'bot': 'bot-1', 'key': 'globalEnable', 'value': 0})
-            self.assertEqual(request('POST', '/api/switches', payload,
-                                     dict(auth, Origin='https://evil.example'))[0], 403)
-            server.PUBLIC_ORIGIN = 'https://dice.example'
-            remote_auth = dict(auth, Host='dice.example')
-            self.assertEqual(request('GET', '/api/accounts', headers=remote_auth)[0], 200)
-            self.assertEqual(request('GET', '/api/accounts', headers=dict(auth, Host='evil.example'))[0], 400)
-            self.assertEqual(request('POST', '/api/switches', payload,
-                                     dict(remote_auth, Origin='http://127.0.0.1:{}'.format(server.PORT)))[0], 403)
-            self.assertEqual(request('POST', '/api/switches', payload,
-                                     dict(remote_auth, Origin='https://dice.example'))[0], 200)
-            self.assertEqual(request('POST', '/api/switches', payload, auth)[0], 200)
-            self.assertEqual(self.fake.console.dictConsoleSwitch['bot-1']['globalEnable'], 0)
-            self.assertEqual(request('GET', '/api/config?bot=bot-1', headers=auth)[1]['config']['globalEnable'], 0)
-            self.assertEqual(request('POST', '/api/config', json.dumps({'bot': 'bot-1', 'action': 'reset'}), auth)[0], 200)
-            binary = dict(auth, **{'Content-Type': 'application/octet-stream'})
-            self.assertEqual(request('POST', '/api/deck-files/upload?bot=bot-1&kind=classic&name=sample.json', b'{"A":["B"]}', binary)[0], 200)
-            self.assertEqual(request('GET', '/api/deck-files?bot=bot-1', headers=auth)[1]['files'][0]['name'], 'sample.json')
-            self.assertEqual(request('GET', '/api/decks?bot=unity', headers=auth)[1]['decks'][1]['name'], 'shared.json')
-            self.assertEqual(request('POST', '/api/deck-files/upload?bot=unity&kind=classic&name=shared.json', b'{"Global":["G"]}', binary)[0], 200)
-            self.assertEqual(request('GET', '/api/deck-files?bot=unity', headers=auth)[1]['files'][0]['scope'], 'unity')
-            self.assertEqual(request('POST', '/api/account/import?bot=bot-1&source=source', b'not a zip', dict(auth, **{'Content-Type': 'application/zip'}))[0], 400)
-        finally:
-            httpd.shutdown()
-            httpd.server_close()
-            thread.join()
-            server.PORT = original_port
-            server.PUBLIC_ORIGIN = original_public_origin
-            server.NETWORK_FILE = original_network_file
+    def test_chunked_request_and_deck_upload(self):
+        context = {'session': 'session-1'}
+        raw_request = json.dumps({
+            'method': 'POST', 'path': '/api/switches',
+            'data': {'bot': 'bot-1', 'key': 'extensionMode', 'value': 9},
+        }).encode()
+        started = bridge.request_start({'size': len(raw_request)}, context)
+        bridge.request_chunk({'transferId': started['transferId'], 'offset': 0,
+                              'data': base64.b64encode(raw_request).decode()}, context)
+        self.assertEqual(bridge.request_finish(FakeProc(), {'transferId': started['transferId']}, context),
+                         {'value': 9})
 
-    def test_public_origin_validation(self):
-        self.assertEqual(server._parse_origin('https://dice.example:8443'), 'https://dice.example:8443')
-        for origin in ('http://0.0.0.0:8765', 'https://dice.example/path',
-                       'https://user@dice.example', 'ftp://dice.example', 'https://dice.example:bad'):
-            with self.assertRaises(ValueError):
-                server._parse_origin(origin)
+        raw_deck = b'{"Bridge":["works"]}'
+        started = bridge.upload_start({
+            'path': '/api/deck-files/upload?bot=bot-1&kind=classic&name=bridge.json',
+            'name': 'bridge.json', 'size': len(raw_deck),
+        }, context)
+        bridge.upload_chunk({'transferId': started['transferId'], 'offset': 0,
+                             'data': base64.b64encode(raw_deck).decode()}, context)
+        bridge.upload_finish(FakeProc(), {'transferId': started['transferId']}, context)
+        self.assertEqual((Path(self.temp_dir.name) / 'bot-1/extend/deckclassic/bridge.json').read_bytes(), raw_deck)
+        with self.assertRaises(service.InvalidInput):
+            bridge.upload_chunk({'transferId': started['transferId'], 'offset': 0, 'data': ''}, context)
 
-    def test_network_settings_persist_and_validate(self):
-        original = server.NETWORK_FILE
-        server.NETWORK_FILE = Path(self.temp_dir.name) / 'network.json'
-        try:
-            with patch.dict(os.environ, {}, clear=True):
-                saved = server.save_network({'bind': '0.0.0.0', 'port': 9876,
-                                             'publicOrigin': 'http://192.168.1.10:9876'})
-                self.assertEqual(saved['afterRestart']['port'], 9876)
-                self.assertTrue(saved['restartRequired'])
-                self.assertEqual(server._read_network()['bind'], '0.0.0.0')
-                before = server.NETWORK_FILE.read_bytes()
-                for invalid in ({'bind': '0.0.0.0', 'port': 9876, 'publicOrigin': ''},
-                                {'bind': '127.0.0.1', 'port': 0, 'publicOrigin': ''},
-                                {'bind': '127.0.0.1', 'port': True, 'publicOrigin': ''}):
-                    with self.assertRaises(ValueError):
-                        server.save_network(invalid)
-                self.assertEqual(server.NETWORK_FILE.read_bytes(), before)
-        finally:
-            server.NETWORK_FILE = original
-
-    def test_frontend_bundle_is_served(self):
-        httpd = HTTPServer(('127.0.0.1', 0), server.handler_factory(FakeProc(), 'test-token'))
-        original_port = server.PORT
-        server.PORT = httpd.server_port
-        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
-        thread.start()
-        try:
-            conn = http.client.HTTPConnection('127.0.0.1', httpd.server_port)
-            conn.request('GET', '/')
-            page = conn.getresponse()
-            html = page.read().decode('utf-8')
-            self.assertEqual(page.status, 200)
-            self.assertIn('id="root"', html)
-            self.assertIn('assets/', html)
-            conn.close()
-            asset = '/' + html.split('src="./')[1].split('"')[0]
-            conn = http.client.HTTPConnection('127.0.0.1', httpd.server_port)
-            conn.request('GET', asset)
-            response = conn.getresponse()
-            self.assertEqual(response.status, 200)
-            self.assertGreater(len(response.read()), 1000)
-            conn.close()
-        finally:
-            httpd.shutdown()
-            httpd.server_close()
-            thread.join()
-            server.PORT = original_port
+    def test_frontend_bundle_is_registered_for_olivos(self):
+        app = json.loads((Path(__file__).parents[1] / 'OlivaDiceWebUI/app.json').read_text(encoding='utf-8'))
+        self.assertEqual(app['webui_config'][0]['path'], 'webui/olivadice.html')
+        page = Path(__file__).parents[1] / 'OlivaDiceWebUI/webui/olivadice.html'
+        html = page.read_text(encoding='utf-8')
+        self.assertIn('id="root"', html)
+        self.assertIn('assets/', html)
 
 
 if __name__ == '__main__':

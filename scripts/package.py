@@ -9,7 +9,7 @@ PLUGIN = ROOT / 'OlivaDiceWebUI'
 VERSION = __import__('json').loads((PLUGIN / 'app.json').read_text(encoding='utf-8'))['version']
 ARCHIVE = ROOT / 'dist' / ('OlivaDiceWebUI-{}.zip'.format(VERSION))
 
-if not (PLUGIN / 'web' / 'olivadice.html').is_file():
+if not (PLUGIN / 'webui' / 'olivadice.html').is_file():
     raise SystemExit('Missing frontend build: cd frontend && npm ci && npm run build')
 
 ARCHIVE.parent.mkdir(exist_ok=True)

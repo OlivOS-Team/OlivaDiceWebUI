@@ -8,8 +8,9 @@ export default defineConfig({
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
   publicDir: false,
   build: {
-    outDir: '../OlivaDiceWebUI/web',
+    outDir: '../OlivaDiceWebUI/webui',
     emptyOutDir: true,
+    modulePreload: { polyfill: false },
     rollupOptions: { input: path.resolve(__dirname, 'olivadice.html') },
   },
 });

@@ -1,8 +1,7 @@
 import React from 'react';
-import { Archive, ArrowRight, BookOpenText, Bot, ChevronDown, Files, Globe2, LayoutDashboard, LogOut, Menu, MessageSquareReply, RotateCcw, Settings2, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { Archive, ArrowRight, BookOpenText, Bot, ChevronDown, Files, LayoutDashboard, Menu, MessageSquareReply, RotateCcw, Settings2, ShieldCheck, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { api, botQuery, type Account, type Deck, type HelpDoc, type Reply, type Setting } from './api';
 import { Notice, SectionTitle } from './ui';
 import { AccountsPage } from './pages/AccountsPage';
@@ -11,15 +10,14 @@ import olivaLogo from './assets/olivos.svg';
 import { DecksPage } from './pages/DecksPage';
 import { HelpPage } from './pages/HelpPage';
 import { RepliesPage } from './pages/RepliesPage';
-import { ServerPage } from './pages/ServerPage';
 import { SettingsPage } from './pages/SettingsPage';
 
-type View = 'dashboard' | 'accounts' | 'settings' | 'replies' | 'help' | 'decks' | 'backup' | 'server';
-const labels: Record<View, string> = { dashboard: '工作台', accounts: '账号与骰主', settings: '核心配置', replies: '回复词', help: '帮助文档', decks: '牌堆管理', backup: '自动备份', server: '服务设置' };
+type View = 'dashboard' | 'accounts' | 'settings' | 'replies' | 'help' | 'decks' | 'backup';
+const labels: Record<View, string> = { dashboard: '工作台', accounts: '账号与骰主', settings: '核心配置', replies: '回复词', help: '帮助文档', decks: '牌堆管理', backup: '自动备份' };
 const nav = [
   { heading: '概览', items: [{ id: 'dashboard' as View, icon: LayoutDashboard }, { id: 'accounts' as View, icon: Bot }] },
   { heading: '内容管理', items: [{ id: 'replies' as View, icon: MessageSquareReply }, { id: 'help' as View, icon: BookOpenText }, { id: 'decks' as View, icon: Files }] },
-  { heading: '系统', items: [{ id: 'settings' as View, icon: Settings2 }, { id: 'backup' as View, icon: Archive }, { id: 'server' as View, icon: Globe2 }] },
+  { heading: '系统', items: [{ id: 'settings' as View, icon: Settings2 }, { id: 'backup' as View, icon: Archive }] },
 ];
 const needsBot = (view: View) => ['replies', 'help'].includes(view);
 const initialView = (): View => { const hash = location.hash.slice(1) as View; return hash in labels ? hash : 'dashboard'; };
@@ -52,13 +50,12 @@ function Dashboard({ token, bot, accounts, navigate, notify }: Shared & { accoun
 }
 
 export function OlivaDiceApp() {
-  const preview = location.protocol === 'file:';
-  const [token, setToken] = React.useState(() => sessionStorage.getItem('olivadice-token') || '');
-  const [inputToken, setInputToken] = React.useState('');
+  const preview = window.parent === window;
+  const token = '';
   const [connected, setConnected] = React.useState(false);
   const [version, setVersion] = React.useState('');
   const [accounts, setAccounts] = React.useState<Account[]>([]);
-  const [bot, setBot] = React.useState(() => sessionStorage.getItem('olivadice-bot') || 'unity');
+  const [bot, setBot] = React.useState('unity');
   const [view, setView] = React.useState<View>(initialView);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -67,35 +64,34 @@ export function OlivaDiceApp() {
   const viewRef = React.useRef(view);
   const onDirtyChange = React.useCallback((value: boolean) => { dirty.current = value; }, []);
   const notify = React.useCallback((message: string, error = false) => setNotice({ message, error }), []);
-  const connect = React.useCallback(async (key: string) => { setLoading(true); try { const result = await api<{ accounts: Account[]; version: string }>('/api/accounts', key); setAccounts(result.accounts); setVersion(result.version); const stored = sessionStorage.getItem('olivadice-bot'); const next = stored && result.accounts.some(item => item.hash === stored) ? stored : result.accounts.find(item => item.hash !== 'unity')?.hash || 'unity'; setBot(next); sessionStorage.setItem('olivadice-bot', next); sessionStorage.setItem('olivadice-token', key); setToken(key); setConnected(true); notify(''); } catch (cause) { sessionStorage.removeItem('olivadice-token'); setConnected(false); notify((cause as Error).message, true); } finally { setLoading(false); } }, [notify]);
-  React.useEffect(() => { if (token && !preview) void connect(token); }, []);
+  const connect = React.useCallback(async () => { setLoading(true); try { const result = await api<{ accounts: Account[]; version: string }>('/api/accounts', token); setAccounts(result.accounts); setVersion(result.version); const next = result.accounts.find(item => item.hash !== 'unity')?.hash || 'unity'; setBot(current => result.accounts.some(item => item.hash === current) ? current : next); setConnected(true); notify(''); } catch (cause) { setConnected(false); notify((cause as Error).message, true); } finally { setLoading(false); } }, [notify]);
+  React.useEffect(() => { if (!preview) void connect(); else notify('请从 OlivOS WebUI 的「插件页面」打开青果骰管理。', true); }, [connect, notify, preview]);
   React.useEffect(() => { viewRef.current = view; }, [view]);
   React.useEffect(() => { const onHash = () => { const next = initialView(); if (next !== viewRef.current && dirty.current) { if (!window.confirm('当前修改尚未保存，确定离开吗？')) { location.hash = viewRef.current; return; } dirty.current = false; } setView(next); }; window.addEventListener('hashchange', onHash); return () => window.removeEventListener('hashchange', onHash); }, []);
   React.useEffect(() => { const beforeUnload = (event: BeforeUnloadEvent) => { if (dirty.current) event.preventDefault(); }; window.addEventListener('beforeunload', beforeUnload); return () => window.removeEventListener('beforeunload', beforeUnload); }, []);
-  const selectBot = (next: string) => { if (next !== bot && dirty.current) { if (!window.confirm('当前修改尚未保存，确定切换账号吗？')) return; dirty.current = false; } setBot(next); sessionStorage.setItem('olivadice-bot', next); notify(''); };
+  const selectBot = (next: string) => { if (next !== bot && dirty.current) { if (!window.confirm('当前修改尚未保存，确定切换账号吗？')) return; dirty.current = false; } setBot(next); notify(''); };
   const navigate = (next: View) => { if (next !== view && dirty.current) { if (!window.confirm('当前修改尚未保存，确定离开吗？')) return; dirty.current = false; } if (needsBot(next) && bot === 'unity') { const first = accounts.find(item => item.hash !== 'unity'); if (first) selectBot(first.hash); } setView(next); location.hash = next; setMenuOpen(false); notify(''); };
-  const logout = () => { if (dirty.current) { if (!window.confirm('当前修改尚未保存，确定退出吗？')) return; dirty.current = false; } sessionStorage.removeItem('olivadice-token'); setToken(''); setConnected(false); setAccounts([]); setVersion(''); setInputToken(''); notify(''); };
   const current = accounts.find(account => account.hash === bot);
   if (!connected) return <div className="min-h-screen bg-[#f5faff] text-slate-900">
     <main className="mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-4 py-10 md:px-8">
       <Notice message={notice.message} error={notice.error} onClose={() => notify('')} />
-      {preview && <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">当前打开的是静态页面预览。请使用 OlivOS 提供的 WebUI 访问地址打开页面，才能读取和保存数据。</div>}
+      {preview && <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">当前页面没有 OlivOS 宿主消息桥。请先登录 OlivOS WebUI，再从侧栏的「插件页面」打开。</div>}
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="relative flex min-h-[360px] items-center overflow-hidden rounded-2xl bg-gradient-to-br from-brand-800 via-brand-700 to-brand-500 p-8 text-white md:p-10">
           <div className="relative z-10 max-w-sm">
             <div className="flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-brand-200"><Sparkles className="h-4 w-4" />OLIVADICE CONTROL CENTER</div>
             <h1 className="mt-7 text-3xl font-bold md:text-4xl">连接青果骰</h1>
-            <p className="mt-4 text-sm leading-7 text-brand-100">从电脑或手机打开管理地址，使用令牌配置运行中的 OlivOS 与青果骰。</p>
+            <p className="mt-4 text-sm leading-7 text-brand-100">通过 OlivOS WebUI 的安全消息桥读取并管理当前运行的青果骰。</p>
           </div>
           <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 h-96 w-96 rotate-12 rounded-[5rem] border border-white/20 bg-white/5" />
           <div aria-hidden="true" className="pointer-events-none absolute -right-9 top-0 hidden h-72 w-72 rotate-12 items-center justify-center rounded-[4rem] border border-white/20 bg-white/10 xl:flex"><img src={olivaLogo} alt="" className="h-44 w-44 -rotate-12 object-contain opacity-80 brightness-0 invert drop-shadow-lg" /></div>
         </section>
         <Card className="flex items-center border-slate-200 shadow-sm"><CardContent className="w-full p-7 md:p-9">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><ShieldCheck className="h-5 w-5" /></div>
-          <h2 className="mt-5 text-xl font-semibold">输入管理令牌</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500">令牌位于 OlivOS 运行目录的 <code className="rounded bg-slate-100 px-1">plugin/data/OlivaDiceWebUI/admin-token.txt</code>。</p>
-          <form className="mt-6 space-y-3" onSubmit={event => { event.preventDefault(); void connect(inputToken.trim()); }}><Input type="password" autoComplete="off" value={inputToken} onChange={event => setInputToken(event.target.value)} placeholder="粘贴管理令牌" disabled={preview} required /><Button className="w-full" disabled={loading || preview}>{loading ? '正在连接…' : '连接管理服务'} <ArrowRight className="ml-2 h-4 w-4" /></Button></form>
-          <p className="mt-4 text-xs leading-5 text-slate-500">首次远程访问：先在 OlivOS 主机上登录，在「服务设置」填写监听地址、端口和远程访问地址；保存并重启 OlivOS 后，再从其他设备打开。</p>
+          <h2 className="mt-5 text-xl font-semibold">{loading ? '正在连接插件…' : '未连接到宿主'}</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-500">{notice.message || 'OlivOS WebUI 负责登录认证，插件页面不会接触宿主令牌。'}</p>
+          <Button className="mt-6 w-full" disabled={loading || preview} onClick={() => void connect()}>{loading ? '正在连接…' : '重新连接'} <ArrowRight className="ml-2 h-4 w-4" /></Button>
+          <p className="mt-4 text-xs leading-5 text-slate-500">需要 OlivOS 0.11.90-alpha.2 或更新版本，并从宿主侧栏打开此页面。</p>
         </CardContent></Card>
       </div>
     </main>
@@ -103,7 +99,7 @@ export function OlivaDiceApp() {
   return <div className="min-h-screen bg-[#f5faff] text-slate-900">
     {menuOpen && <button className="fixed inset-0 z-30 bg-slate-950/40 lg:hidden" aria-label="关闭菜单" onClick={() => setMenuOpen(false)} />}
     <aside className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform lg:translate-x-0 ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}><div className="flex h-16 items-center gap-3 border-b px-5"><img src={olivaLogo} alt="青果骰 OlivaDice" className="h-10 w-10 shrink-0 object-contain" /><div className="min-w-0"><div className="text-base font-bold tracking-tight text-brand-700">青果骰</div><div className="text-[10px] font-medium uppercase tracking-wider text-slate-400">OlivaDice WebUI</div></div><button className="ml-auto lg:hidden" aria-label="关闭菜单" onClick={() => setMenuOpen(false)}><X className="h-5 w-5" /></button></div><nav className="flex-1 space-y-6 overflow-y-auto px-3 py-6">{nav.map(group => <div key={group.heading}><div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">{group.heading}</div><div className="space-y-1">{group.items.map(({ id, icon: Icon }) => <button key={id} onClick={() => navigate(id)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${view === id ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}><Icon className="h-[18px] w-[18px]" /><span>{labels[id]}</span>{view === id && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-500" />}</button>)}</div></div>)}</nav><div className="border-t p-4"><div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-slate-600"><span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-500' : 'bg-slate-300'}`} />{connected ? '管理服务已连接' : '等待连接'}<span className="ml-auto text-slate-400">{version && `v${version}`}</span></div></div></aside>
-    <div className="min-w-0 lg:pl-64"><header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur md:px-8"><div className="flex min-w-0 items-center gap-3"><Button size="icon" variant="ghost" className="lg:hidden" onClick={() => setMenuOpen(true)}><Menu className="h-5 w-5" /></Button><div className="truncate text-xs text-slate-500">青果骰 <span className="mx-1 text-slate-300">/</span> <span className="font-medium text-slate-800">{labels[view]}</span></div></div><div className="flex items-center gap-2">{connected && <><div className="relative hidden sm:block"><select aria-label="当前账号" value={bot} onChange={event => selectBot(event.target.value)} className="h-9 max-w-56 appearance-none truncate rounded-lg border bg-white py-1 pl-3 pr-8 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-brand-300">{accounts.map(account => <option key={account.hash} value={account.hash}>{account.label}</option>)}</select><ChevronDown className="pointer-events-none absolute right-2 top-2.5 h-4 w-4 text-slate-400" /></div><Button size="sm" variant="ghost" onClick={() => void connect(token)} title="刷新账号列表"><RotateCcw className="h-4 w-4" /><span className="ml-2 hidden md:inline">刷新账号</span></Button><Button size="sm" variant="ghost" onClick={logout} title="退出管理"><LogOut className="h-4 w-4" /><span className="ml-2 hidden md:inline">退出</span></Button></>}</div></header>
+    <div className="min-w-0 lg:pl-64"><header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur md:px-8"><div className="flex min-w-0 items-center gap-3"><Button size="icon" variant="ghost" className="lg:hidden" onClick={() => setMenuOpen(true)}><Menu className="h-5 w-5" /></Button><div className="truncate text-xs text-slate-500">青果骰 <span className="mx-1 text-slate-300">/</span> <span className="font-medium text-slate-800">{labels[view]}</span></div></div><div className="flex items-center gap-2">{connected && <><div className="relative hidden sm:block"><select aria-label="当前账号" value={bot} onChange={event => selectBot(event.target.value)} className="h-9 max-w-56 appearance-none truncate rounded-lg border bg-white py-1 pl-3 pr-8 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-brand-300">{accounts.map(account => <option key={account.hash} value={account.hash}>{account.label}</option>)}</select><ChevronDown className="pointer-events-none absolute right-2 top-2.5 h-4 w-4 text-slate-400" /></div><Button size="sm" variant="ghost" onClick={() => void connect()} title="刷新账号列表"><RotateCcw className="h-4 w-4" /><span className="ml-2 hidden md:inline">刷新账号</span></Button></>}</div></header>
       <main className="mx-auto max-w-[1440px] px-4 py-6 md:px-8 md:py-8"><div className="mb-6 flex flex-wrap items-end justify-between gap-3"><div><div className="mb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-600">管理面板</div><h1 className="text-2xl font-bold tracking-tight md:text-3xl">{labels[view]}</h1><p className="mt-1 text-sm text-slate-500">{view === 'backup' ? '当前范围：全局配置' : `当前范围：${current?.label || '全局配置'}`}</p></div>{connected && <select aria-label="移动端账号选择" value={bot} onChange={event => selectBot(event.target.value)} className="h-9 max-w-full rounded-lg border bg-white px-3 text-xs text-slate-700 sm:hidden">{accounts.map(account => <option key={account.hash} value={account.hash}>{account.label}</option>)}</select>}</div>
       <Notice message={notice.message} error={notice.error} onClose={() => notify('')} />
         {view === 'dashboard' && <Dashboard token={token} bot={bot} accounts={accounts} navigate={navigate} notify={notify} />}
@@ -113,7 +109,6 @@ export function OlivaDiceApp() {
         {view === 'help' && (bot === 'unity' ? <SelectAccount /> : <HelpPage token={token} bot={bot} notify={notify} onDirtyChange={onDirtyChange} />)}
         {view === 'decks' && <DecksPage token={token} bot={bot} notify={notify} />}
         {view === 'backup' && <BackupPage token={token} notify={notify} />}
-        {view === 'server' && <ServerPage token={token} notify={notify} onDirtyChange={onDirtyChange} />}
       </main></div></div>;
 }
 function SelectAccount() { return <Card className="max-w-xl"><CardContent className="p-7 text-sm text-slate-600">请在页面右上角选择一个机器人账号。</CardContent></Card>; }
