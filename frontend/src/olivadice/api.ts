@@ -6,6 +6,8 @@ export type Deck = { name: string; groups: string[]; count: number };
 export type Master = { id: string; platform: string };
 export type BackupState = { available: boolean; settings: { isBackup: number | null; startDate: string | null; passDay: number | null; backupTime: string | null; maxBackupCount: number | null } };
 
+export const standalone = import.meta.env.VITE_WEBUI_MODE === 'standalone';
+
 const events = {
   request: 'OlivaDiceWebUI_WebUI_Request',
   requestStart: 'OlivaDiceWebUI_WebUI_RequestStart',
@@ -56,7 +58,18 @@ function bridge<T>(event: string, payload: unknown, timeout = 30_000): Promise<T
   });
 }
 
-export async function api<T>(path: string, _token: string, data?: unknown): Promise<T> {
+export async function api<T>(path: string, token: string, data?: unknown): Promise<T> {
+  if (standalone) {
+    const response = await fetch(path, {
+      method: data === undefined ? 'GET' : 'POST',
+      headers: { Authorization: `Bearer ${token}`, ...(data === undefined ? {} : { 'Content-Type': 'application/json' }) },
+      ...(data === undefined ? {} : { body: JSON.stringify(data) }),
+    });
+    let result: Record<string, unknown>;
+    try { result = await response.json(); } catch { throw new Error(`服务响应错误（HTTP ${response.status}）`); }
+    if (!response.ok) throw new Error(String(result.error || `HTTP ${response.status}`));
+    return result as T;
+  }
   const request = { method: data === undefined ? 'GET' : 'POST', path, ...(data === undefined ? {} : { data }) };
   const encoded = new TextEncoder().encode(JSON.stringify(request));
   if (encoded.length <= 512 * 1024) return bridge<T>(events.request, request);
@@ -99,7 +112,19 @@ async function cancelTransfer(transferId: string): Promise<void> {
   try { await bridge(events.cancel, { transferId }, 5_000); } catch { /* Transfer may already be gone. */ }
 }
 
-export async function downloadFile(path: string, _token: string, filename: string): Promise<void> {
+export async function downloadFile(path: string, token: string, filename: string): Promise<void> {
+  if (standalone) {
+    const response = await fetch(path, { headers: { Authorization: `Bearer ${token}` } });
+    if (!response.ok) {
+      const result = await response.json();
+      throw new Error(String(result.error || `HTTP ${response.status}`));
+    }
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a');
+    link.href = url; link.download = filename; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return;
+  }
   const start = await bridge<{ transferId: string; size: number; chunkBytes: number }>(events.downloadStart, { path }, 120_000);
   const bytes = new Uint8Array(start.size);
   let offset = 0;
@@ -122,7 +147,17 @@ export async function downloadFile(path: string, _token: string, filename: strin
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function uploadFile<T>(path: string, _token: string, file: File): Promise<T> {
+export async function uploadFile<T>(path: string, token: string, file: File): Promise<T> {
+  if (standalone) {
+    const response = await fetch(path, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': file.name.toLowerCase().endsWith('.zip') ? 'application/zip' : 'application/octet-stream' },
+      body: file,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(String(result.error || `HTTP ${response.status}`));
+    return result as T;
+  }
   const start = await bridge<{ transferId: string; chunkBytes: number }>(events.uploadStart, { path, name: file.name, size: file.size });
   let offset = 0;
   try {

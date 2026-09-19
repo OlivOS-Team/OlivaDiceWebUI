@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "vite --open /olivadice.html",
     "lint": "tsc -p tsconfig.app.json --noEmit --emitDeclarationOnly false --composite false",
-    "build": "npm run lint && vite build",
+    "build": "npm run lint && npm run build:official && npm run build:standalone",
+    "build:official": "vite build --mode official",
+    "build:standalone": "vite build --mode standalone",
     "preview": "vite preview --open /olivadice.html"
   },
   "dependencies": {

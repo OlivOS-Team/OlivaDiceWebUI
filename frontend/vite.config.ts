@@ -38,15 +38,19 @@ function inlineWebUI(): Plugin {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), inlineWebUI()],
-  base: './',
-  resolve: { alias: { '@': path.resolve(__dirname, './src') } },
-  publicDir: false,
-  build: {
-    outDir: '../OlivaDiceWebUI/webui',
-    emptyOutDir: true,
-    modulePreload: { polyfill: false },
-    rollupOptions: { input: path.resolve(__dirname, 'olivadice.html') },
-  },
+export default defineConfig(({ mode }) => {
+  const standalone = mode === 'standalone';
+  return {
+    plugins: [react(), ...(standalone ? [] : [inlineWebUI()])],
+    base: './',
+    define: { 'import.meta.env.VITE_WEBUI_MODE': JSON.stringify(standalone ? 'standalone' : 'official') },
+    resolve: { alias: { '@': path.resolve(__dirname, './src') } },
+    publicDir: false,
+    build: {
+      outDir: standalone ? '../OlivaDiceWebUIStandalone/web' : '../OlivaDiceWebUI/webui',
+      emptyOutDir: true,
+      ...(standalone ? {} : { modulePreload: { polyfill: false } }),
+      rollupOptions: { input: path.resolve(__dirname, 'olivadice.html') },
+    },
+  };
 });

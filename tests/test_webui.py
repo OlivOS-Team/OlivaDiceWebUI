@@ -1,16 +1,23 @@
 import base64
+import http.client
 import io
 import json
+import os
 import sys
 import tempfile
+import threading
 import types
 import unittest
 import zipfile
+from http.server import HTTPServer
 from pathlib import Path
+from unittest.mock import patch
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from OlivaDiceWebUI import bridge, deck_management, gui_parity, main, service  # noqa: E402
+from OlivaDiceWebUIStandalone import main as standalone_main  # noqa: E402
+from OlivaDiceWebUIStandalone import server as standalone_server  # noqa: E402
 
 
 class FakeProc:
@@ -175,6 +182,70 @@ class WebUITest(unittest.TestCase):
         self.assertEqual(replies[0][0:2], ('webui', 'request-1'))
         self.assertTrue(replies[0][2]['ok'])
         self.assertEqual(replies[0][2]['result']['accounts'][1]['hash'], 'bot-1')
+
+    def test_plugin_editions_have_distinct_registrations(self):
+        root = Path(__file__).parents[1]
+        official = json.loads((root / 'OlivaDiceWebUI/app.json').read_text(encoding='utf-8'))
+        standalone_manifest = json.loads((root / 'OlivaDiceWebUIStandalone/app.json').read_text(encoding='utf-8'))
+        self.assertEqual(official['name'], 'OlivaDice WebUI（官方接入版）')
+        self.assertEqual(official['namespace'], 'OlivaDiceWebUI')
+        self.assertEqual(standalone_manifest['name'], 'OlivaDice WebUI（独立服务版）')
+        self.assertEqual(standalone_manifest['namespace'], 'OlivaDiceWebUIStandalone')
+        self.assertNotEqual(official['namespace'], standalone_manifest['namespace'])
+        self.assertEqual(standalone_server.CONFIG_DIR, Path('./plugin/data/OlivaDiceWebUIStandalone'))
+
+    def test_standalone_menu_and_http_service(self):
+        import webbrowser
+        original_open = webbrowser.open
+        opened = []
+        webbrowser.open = lambda url: opened.append(url) or True
+        try:
+            event = types.SimpleNamespace(data=types.SimpleNamespace(event='OlivaDiceWebUIStandalone_001'))
+            standalone_main.Event.menu(event, FakeProc())
+            self.assertEqual(opened, ['http://127.0.0.1:8765/'])
+        finally:
+            webbrowser.open = original_open
+
+        httpd = HTTPServer(('127.0.0.1', 0), standalone_server.handler_factory(FakeProc(), 'test-token'))
+        original_port = standalone_server.PORT
+        standalone_server.PORT = httpd.server_port
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        try:
+            def request(path, headers=None):
+                connection = http.client.HTTPConnection('127.0.0.1', httpd.server_port)
+                connection.request('GET', path, headers=headers or {})
+                response = connection.getresponse()
+                body = response.read()
+                connection.close()
+                return response.status, body
+
+            self.assertEqual(request('/api/accounts')[0], 401)
+            status, body = request('/api/accounts', {'Authorization': 'Bearer test-token'})
+            self.assertEqual(status, 200)
+            self.assertEqual(json.loads(body)['accounts'][1]['hash'], 'bot-1')
+            status, page = request('/')
+            self.assertEqual(status, 200)
+            self.assertIn(b'id="root"', page)
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+            thread.join()
+            standalone_server.PORT = original_port
+
+    def test_standalone_network_settings_are_isolated(self):
+        original = standalone_server.NETWORK_FILE
+        standalone_server.NETWORK_FILE = Path(self.temp_dir.name) / 'network.json'
+        try:
+            with patch.dict(os.environ, {}, clear=True):
+                saved = standalone_server.save_network({
+                    'bind': '0.0.0.0', 'port': 9876,
+                    'publicOrigin': 'http://192.168.1.10:9876',
+                })
+                self.assertEqual(saved['afterRestart']['port'], 9876)
+                self.assertEqual(standalone_server._read_network()['bind'], '0.0.0.0')
+        finally:
+            standalone_server.NETWORK_FILE = original
 
     def test_market_install_uses_selected_catalog_entry(self):
         module = types.ModuleType('OlivaDiceOdyssey')

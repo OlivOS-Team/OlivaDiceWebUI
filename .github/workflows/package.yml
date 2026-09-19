@@ -25,15 +25,15 @@ jobs:
           python-version: '3.11'
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
-      - name: Build frontend
+      - name: Build both frontends
         run: npm run build --prefix frontend
-      - name: Test plugin
+      - name: Test both plugins
         run: python3 -m unittest discover -s tests -v
-      - name: Package plugin
+      - name: Package both plugins
         run: python3 scripts/package.py
       - uses: actions/upload-artifact@v7
         with:
-          name: OlivaDiceWebUI-package
+          name: OlivaDiceWebUI-packages
           path: dist/*.zip
           if-no-files-found: error
 
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v7
         with:
-          name: OlivaDiceWebUI-package
+          name: OlivaDiceWebUI-packages
           path: dist
       - name: Publish GitHub Release
         env:
