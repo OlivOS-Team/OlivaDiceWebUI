@@ -1,5 +1,5 @@
 import React from 'react';
-import { Archive, ArrowRight, BookOpenText, Bot, ChevronDown, Dices, Files, Globe2, LayoutDashboard, LogOut, Menu, MessageSquareReply, Moon, PanelLeft, PanelTop, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, X } from 'lucide-react';
+import { Archive, ArrowRight, BookOpenText, Bot, ChevronDown, Files, Globe2, LayoutDashboard, LogOut, Menu, MessageSquareReply, Moon, PanelLeft, PanelTop, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { api, botQuery, standalone, type Account, type Deck, type HelpDoc, type 
 import { Notice, SectionTitle, useConfirm } from './ui';
 import { AccountsPage } from './pages/AccountsPage';
 import { BackupPage } from './pages/BackupPage';
+import olivaLogo from './assets/olivos.svg?raw';
 import { DecksPage } from './pages/DecksPage';
 import { HelpPage } from './pages/HelpPage';
 import { RepliesPage } from './pages/RepliesPage';
@@ -28,7 +29,7 @@ const preferenceKey = (name: string) => `olivadice-${standalone ? 'standalone' :
 const readPreference = <T extends string>(name: string, allowed: readonly T[], fallback: T): T => { try { const value = localStorage.getItem(preferenceKey(name)) as T | null; return value && allowed.includes(value) ? value : fallback; } catch { return fallback; } };
 const writePreference = (name: string, value: string) => { try { localStorage.setItem(preferenceKey(name), value); } catch { /* Official plugin frames may have an opaque origin. */ } };
 type Shared = { token: string; bot: string; notify: (message: string, error?: boolean) => void };
-const LogoMark = ({ large = false }: { large?: boolean }) => <span aria-hidden="true" className={`flex shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950/60 dark:text-brand-300 ${large ? 'h-44 w-44' : 'h-10 w-10'}`}><Dices className={large ? 'h-24 w-24' : 'h-6 w-6'} /></span>;
+const LogoMark = ({ large = false }: { large?: boolean }) => <span aria-hidden="true" className={`block shrink-0 [&_svg]:h-full [&_svg]:w-full ${large ? 'h-44 w-44 brightness-0 invert' : 'h-10 w-10'}`} dangerouslySetInnerHTML={{ __html: olivaLogo }} />;
 
 function Dashboard({ token, bot, accounts, navigate, notify }: Shared & { accounts: Account[]; navigate: (view: View) => void }) {
   const [stats, setStats] = React.useState({ settings: 0, replies: 0, docs: 0, decks: 0, enabled: false });
