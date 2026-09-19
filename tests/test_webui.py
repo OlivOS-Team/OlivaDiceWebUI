@@ -356,6 +356,10 @@ class WebUITest(unittest.TestCase):
         self.assertIn('<style>', html)
         self.assertNotIn('src="./assets/', html)
         self.assertNotIn('href="./assets/', html)
+        self.assertIn('aria-modal', html)
+        frontend = Path(__file__).parents[1] / 'frontend/src/olivadice'
+        self.assertFalse(any('window.confirm(' in source.read_text(encoding='utf-8')
+                             for source in frontend.rglob('*.tsx')))
         self.assertEqual([path.name for path in page.parent.iterdir()], ['olivadice.html'])
 
 

@@ -3,7 +3,7 @@ import { DownloadCloud, Files, FolderOpen, Layers3, RotateCcw, Trash2, Upload } 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { api, botQuery, uploadFile, type Deck } from '../api';
-import { Busy, Empty, SearchField, SectionTitle } from '../ui';
+import { Busy, Empty, SearchField, SectionTitle, useConfirm } from '../ui';
 
 type Props = { token: string; bot: string; notify: (message: string, error?: boolean) => void };
 type FileEntry = { name: string; kind: string; size: number; scope: string };
@@ -11,6 +11,7 @@ type MarketEntry = { name: string; kind: string; author: string; version: string
 const kindLabel: Record<string, string> = { classic: 'JSON', yaml: 'YAML', excel: 'Excel' };
 const detectKind = (name: string) => /\.json5?$/i.test(name) ? 'classic' : /\.ya?ml$/i.test(name) ? 'yaml' : /\.xlsx?$/i.test(name) ? 'excel' : '';
 export function DecksPage({ token, bot, notify }: Props) {
+  const confirm = useConfirm();
   const [tab, setTab] = React.useState<'loaded' | 'files' | 'market'>('loaded');
   const [decks, setDecks] = React.useState<Deck[]>([]);
   const [files, setFiles] = React.useState<FileEntry[]>([]);
@@ -30,9 +31,9 @@ export function DecksPage({ token, bot, notify }: Props) {
   React.useEffect(() => { setScope(bot); void loadIndex(); }, [bot, loadIndex]);
   React.useEffect(() => { if (tab === 'files') void loadFiles(scope); if (tab === 'market' && !market) void loadMarket(); }, [tab, scope, loadFiles, loadMarket]);
   const reload = async () => { setBusy(true); try { await api('/api/decks/reload', token, { bot }); await loadIndex(); if (tab === 'files') await loadFiles(scope); notify('牌堆已从磁盘重新加载'); } catch (cause) { notify((cause as Error).message, true); } finally { setBusy(false); } };
-  const upload = async (file?: File) => { if (!file) return; const kind = uploadKind === 'auto' ? detectKind(file.name) : uploadKind; if (!kind) { notify('请选择牌堆格式，或使用 JSON、JSON5、YAML、XLSX、XLS 扩展名', true); return; } if (!window.confirm(`将 ${file.name} 安装到${scope === 'unity' ? '全局' : '当前账号'}牌堆目录？同名文件会被覆盖。`)) return; setBusy(true); try { const query = `?bot=${encodeURIComponent(scope)}&kind=${kind}&name=${encodeURIComponent(file.name)}`; await uploadFile(`/api/deck-files/upload${query}`, token, file); await loadFiles(scope); await loadIndex(); notify('牌堆文件已安装并重新加载'); } catch (cause) { notify((cause as Error).message, true); } finally { setBusy(false); if (fileRef.current) fileRef.current.value = ''; } };
-  const remove = async (file: FileEntry) => { if (!window.confirm(`删除 ${scope === 'unity' ? '全局' : '当前账号'}牌堆文件「${file.name}」？`)) return; setBusy(true); try { await api('/api/deck-files/delete', token, { bot: scope, kind: file.kind, name: file.name }); await loadFiles(scope); await loadIndex(); notify('牌堆文件已删除'); } catch (cause) { notify((cause as Error).message, true); } finally { setBusy(false); } };
-  const installMarket = async (entry: MarketEntry) => { if (!window.confirm(`将市场牌堆「${entry.name}」安装到${scope === 'unity' ? '全局' : '当前账号'}？`)) return; setBusy(true); try { await api('/api/deck-market/install', token, { bot: scope, kind: entry.kind, name: entry.name }); await loadIndex(); notify('市场牌堆已安装并重新加载'); } catch (cause) { notify((cause as Error).message, true); } finally { setBusy(false); } };
+  const upload = async (file?: File) => { if (!file) return; const kind = uploadKind === 'auto' ? detectKind(file.name) : uploadKind; if (!kind) { notify('请选择牌堆格式，或使用 JSON、JSON5、YAML、XLSX、XLS 扩展名', true); return; } if (!(await confirm(`将 ${file.name} 安装到${scope === 'unity' ? '全局' : '当前账号'}牌堆目录？同名文件会被覆盖。`, { confirmLabel: '安装' }))) return; setBusy(true); try { const query = `?bot=${encodeURIComponent(scope)}&kind=${kind}&name=${encodeURIComponent(file.name)}`; await uploadFile(`/api/deck-files/upload${query}`, token, file); await loadFiles(scope); await loadIndex(); notify('牌堆文件已安装并重新加载'); } catch (cause) { notify((cause as Error).message, true); } finally { setBusy(false); if (fileRef.current) fileRef.current.value = ''; } };
+  const remove = async (file: FileEntry) => { if (!(await confirm(`删除 ${scope === 'unity' ? '全局' : '当前账号'}牌堆文件「${file.name}」？`, { confirmLabel: '删除', destructive: true }))) return; setBusy(true); try { await api('/api/deck-files/delete', token, { bot: scope, kind: file.kind, name: file.name }); await loadFiles(scope); await loadIndex(); notify('牌堆文件已删除'); } catch (cause) { notify((cause as Error).message, true); } finally { setBusy(false); } };
+  const installMarket = async (entry: MarketEntry) => { if (!(await confirm(`将市场牌堆「${entry.name}」安装到${scope === 'unity' ? '全局' : '当前账号'}？`, { confirmLabel: '安装' }))) return; setBusy(true); try { await api('/api/deck-market/install', token, { bot: scope, kind: entry.kind, name: entry.name }); await loadIndex(); notify('市场牌堆已安装并重新加载'); } catch (cause) { notify((cause as Error).message, true); } finally { setBusy(false); } };
   const filtered = decks.filter(deck => `${deck.name} ${deck.groups.join(' ')}`.toLowerCase().includes(query.toLowerCase()));
   const active = decks.find(deck => deck.name === selected);
   const marketFiltered = (market?.decks || []).filter(entry => `${entry.name} ${entry.author} ${entry.description}`.toLowerCase().includes(query.toLowerCase()));
