@@ -40,7 +40,7 @@
 ## 安装与打开
 
 1. 安装 OlivOS 和 OlivaDiceCore。需要账号迁移、备份或牌堆市场时，再安装 OlivaDiceMaster / OlivaDiceOdyssey。
-2. 从 [最新 Release](https://github.com/ShiaNyaa/OlivaDiceWebUI/releases/latest) 选择下载：`OlivaDiceWebUI-YYYYMMDD.N.opk` 为官方接入版，`OlivaDiceWebUIStandalone-YYYYMMDD.N.opk` 为独立服务版。将所需 OPK 放入 OlivOS 的 `plugin/app` 目录后重启。两者注册名、namespace 和自身数据目录均不同，可以同时安装。
+2. 从 [最新 Release](https://github.com/ShiaNyaa/OlivaDiceWebUI/releases/latest) 选择下载：页面上的资产标签会显示时间戳版本号，实际下载文件为 `OlivaDiceWebUI.opk`（官方接入版）和 `OlivaDiceWebUIStandalone.opk`（独立服务版）。将所需 OPK 放入 OlivOS 的 `plugin/app` 目录后重启。两者注册名、namespace 和自身数据目录均不同，可以同时安装。
 3. 官方接入版：登录 OlivOS WebUI 后，从侧栏“插件页面”打开“青果骰管理”。不要单独打开插件 HTML；脱离宿主 iframe 时没有消息桥。
 4. 独立服务版：默认访问 `http://127.0.0.1:8765/`，管理令牌位于 `plugin/data/OlivaDiceWebUIStandalone/admin-token.txt`；监听设置保存在同目录的 `network.json`。
 
@@ -66,7 +66,7 @@ python3 scripts/package.py
 
 ## 版本与自动发布
 
-推送到 `main` 后，GitHub Actions 会从同一份源码构建、测试并打包两个版本。成功后使用同一个北京时间版本号创建 Release，同时上传 `OlivaDiceWebUI-YYYYMMDD.N.opk` 和 `OlivaDiceWebUIStandalone-YYYYMMDD.N.opk`。
+推送到 `main` 后，GitHub Actions 会从同一份源码构建、测试并打包两个版本。成功后使用同一个北京时间版本号创建 Release；Release 页面的资产标签包含版本号，下载文件名固定为 `OlivaDiceWebUI.opk` 和 `OlivaDiceWebUIStandalone.opk`。
 
 ## 许可与致谢
 

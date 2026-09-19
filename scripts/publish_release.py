@@ -43,13 +43,12 @@ def identify_archive(source):
 
 
 def stamp_archive(source, version):
-    """Return a ZIP with a GitHub-safe name and the exact plugin version."""
-    match = re.fullmatch(r'(\d{8})\(([1-9]\d*)\)', version)
-    if not match:
+    """Return a fixed-name OPK whose manifest contains the exact release version."""
+    if not re.fullmatch(r'\d{8}\([1-9]\d*\)', version):
         raise ValueError('Invalid release version: {}'.format(version))
     _, base_name, _ = identify_archive(source)
-    # GitHub normalizes parentheses in uploaded asset filenames to periods.
-    target = source.with_name('{}-{}.{}.opk'.format(base_name, *match.groups()))
+    # The asset label carries the timestamped version while downloads keep this stable filename.
+    target = source.with_name('{}.opk'.format(base_name))
     temporary = target.with_name(target.name + '.tmp')
     found_manifest = False
     try:

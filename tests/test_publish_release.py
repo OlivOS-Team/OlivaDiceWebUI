@@ -30,7 +30,7 @@ class ReleaseVersionTest(unittest.TestCase):
                     'namespace': 'OlivaDiceWebUI', 'version': 'dev'}))
                 archive.writestr('main.py', 'print("ok")')
             stamped = stamp_archive(original, '20260918(2)')
-            self.assertEqual(stamped.name, 'OlivaDiceWebUI-20260918.2.opk')
+            self.assertEqual(stamped.name, 'OlivaDiceWebUI.opk')
             with ZipFile(stamped) as archive:
                 self.assertEqual(json.loads(archive.read('app.json'))['version'], '20260918(2)')
                 self.assertEqual(archive.read('main.py'), b'print("ok")')
@@ -50,7 +50,7 @@ class ReleaseVersionTest(unittest.TestCase):
             self.assertEqual(base_name, 'OlivaDiceWebUIStandalone')
             self.assertIn('独立服务版', label)
             stamped = stamp_archive(original, '20260918(2)')
-            self.assertEqual(stamped.name, 'OlivaDiceWebUIStandalone-20260918.2.opk')
+            self.assertEqual(stamped.name, 'OlivaDiceWebUIStandalone.opk')
             with ZipFile(stamped) as archive:
                 self.assertEqual(json.loads(archive.read('app.json'))['version'], '20260918(2)')
                 self.assertEqual(archive.read('main.py'), b'print("standalone")')
@@ -109,9 +109,9 @@ class ReleaseVersionTest(unittest.TestCase):
                 publish_release.main()
             args = mocked_gh.call_args.args
             self.assertEqual(args[:3], ('release', 'create', 'v20260920(1)'))
-            self.assertTrue(any('OlivaDiceWebUI-20260920.1.opk#OlivaDice WebUI（官方接入版）' in value
+            self.assertTrue(any('OlivaDiceWebUI.opk#OlivaDice WebUI（官方接入版） v20260920(1)' in value
                                 for value in args))
-            self.assertTrue(any('OlivaDiceWebUIStandalone-20260920.1.opk#OlivaDice WebUI（独立服务版）' in value
+            self.assertTrue(any('OlivaDiceWebUIStandalone.opk#OlivaDice WebUI（独立服务版） v20260920(1)' in value
                                 for value in args))
 
 
