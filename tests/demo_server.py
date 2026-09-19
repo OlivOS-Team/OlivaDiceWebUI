@@ -18,7 +18,7 @@ class DemoProc:
     }}
 
     def get_plugin_list(self):
-        return ['OlivaDiceCore', 'OlivaDiceMaster', 'OlivaDiceWebUI']
+        return ['OlivaDiceCore', 'OlivaDiceMaster', 'OlivaDiceWebUIStandalone']
 
 
 core = types.ModuleType('OlivaDiceCore')

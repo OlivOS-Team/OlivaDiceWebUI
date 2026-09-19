@@ -16,14 +16,15 @@ from urllib.parse import parse_qs, urlsplit
 from . import deck_management, gui_parity, service
 
 
-CONFIG_DIR = Path('./plugin/data/OlivaDiceWebUI')
+CONFIG_DIR = Path('./plugin/data/OlivaDiceWebUIStandalone')
 TOKEN_FILE = CONFIG_DIR / 'admin-token.txt'
 NETWORK_FILE = CONFIG_DIR / 'network.json'
 WEB_ROOT = Path(__file__).with_name('web')
 APP_FILE = Path(__file__).with_name('app.json')
 DEFAULT_NETWORK = {'bind': '127.0.0.1', 'port': 8765, 'publicOrigin': ''}
-ENV_NETWORK = {'bind': 'OLIVADICE_WEBUI_BIND', 'port': 'OLIVADICE_WEBUI_PORT',
-               'publicOrigin': 'OLIVADICE_WEBUI_PUBLIC_ORIGIN'}
+ENV_NETWORK = {'bind': 'OLIVADICE_STANDALONE_WEBUI_BIND',
+               'port': 'OLIVADICE_STANDALONE_WEBUI_PORT',
+               'publicOrigin': 'OLIVADICE_STANDALONE_WEBUI_PUBLIC_ORIGIN'}
 _network_lock = threading.RLock()
 
 
@@ -32,13 +33,13 @@ def _parse_origin(value):
     if (parsed.scheme not in ('http', 'https') or not parsed.hostname
             or parsed.username or parsed.password or parsed.path not in ('', '/')
             or parsed.query or parsed.fragment or any(char.isspace() for char in value)):
-        raise ValueError('OLIVADICE_WEBUI_PUBLIC_ORIGIN 必须是完整的 HTTP(S) 来源地址，不能包含路径')
+        raise ValueError('OLIVADICE_STANDALONE_WEBUI_PUBLIC_ORIGIN 必须是完整的 HTTP(S) 来源地址，不能包含路径')
     try:
         _ = parsed.port
     except ValueError:
-        raise ValueError('OLIVADICE_WEBUI_PUBLIC_ORIGIN 的端口无效') from None
+        raise ValueError('OLIVADICE_STANDALONE_WEBUI_PUBLIC_ORIGIN 的端口无效') from None
     if parsed.hostname in ('0.0.0.0', '127.0.0.1', 'localhost'):
-        raise ValueError('OLIVADICE_WEBUI_PUBLIC_ORIGIN 应填写远程访问时使用的地址')
+        raise ValueError('OLIVADICE_STANDALONE_WEBUI_PUBLIC_ORIGIN 应填写远程访问时使用的地址')
     return '{}://{}'.format(parsed.scheme, parsed.netloc.lower())
 
 
@@ -149,7 +150,7 @@ def plugin_version():
 
 def handler_factory(proc, token):
     class Handler(BaseHTTPRequestHandler):
-        server_version = 'OlivaDiceWebUI/{}'.format(plugin_version())
+        server_version = 'OlivaDiceWebUIStandalone/{}'.format(plugin_version())
 
         def log_message(self, format, *args):
             # Avoid logging authorization headers or reply contents.
@@ -358,9 +359,9 @@ def start(proc):
     token = _token()
     _server = ThreadingHTTPServer((BIND_HOST, PORT), handler_factory(proc, token))
     _server.daemon_threads = True
-    _thread = threading.Thread(target=_server.serve_forever, name='OlivaDiceWebUI', daemon=True)
+    _thread = threading.Thread(target=_server.serve_forever, name='OlivaDiceWebUIStandalone', daemon=True)
     _thread.start()
-    proc.log(2, 'OlivaDiceWebUI: {}:{} 已启动；远程地址 {}；令牌文件 {}'.format(
+    proc.log(2, 'OlivaDiceWebUIStandalone: {}:{} 已启动；远程地址 {}；令牌文件 {}'.format(
         BIND_HOST, PORT, PUBLIC_ORIGIN or '未配置', TOKEN_FILE))
 
 

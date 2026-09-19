@@ -93,7 +93,7 @@ export function OlivaDiceApp() {
         <Card className="flex items-center border-slate-200 shadow-sm"><CardContent className="w-full p-7 md:p-9">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><ShieldCheck className="h-5 w-5" /></div>
           <h2 className="mt-5 text-xl font-semibold">输入管理令牌</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500">令牌位于 OlivOS 运行目录的 <code className="rounded bg-slate-100 px-1">plugin/data/OlivaDiceWebUI/admin-token.txt</code>。</p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">令牌位于 OlivOS 运行目录的 <code className="rounded bg-slate-100 px-1">plugin/data/OlivaDiceWebUIStandalone/admin-token.txt</code>。</p>
           <form className="mt-6 space-y-3" onSubmit={event => { event.preventDefault(); void connect(inputToken.trim()); }}><Input type="password" autoComplete="off" value={inputToken} onChange={event => setInputToken(event.target.value)} placeholder="粘贴管理令牌" disabled={preview} required /><Button className="w-full" disabled={loading || preview}>{loading ? '正在连接…' : '连接管理服务'} <ArrowRight className="ml-2 h-4 w-4" /></Button></form>
           <p className="mt-4 text-xs leading-5 text-slate-500">首次远程访问：先在 OlivOS 主机上登录，在「服务设置」填写监听地址、端口和远程访问地址；保存并重启 OlivOS 后，再从其他设备打开。</p>
         </CardContent></Card>

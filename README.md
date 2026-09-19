@@ -1,6 +1,6 @@
 # OlivaDiceWebUI
 
-青果骰的跨平台浏览器管理界面，作为 OlivOS 插件与 OlivaDiceCore 在同一进程中运行。它覆盖 OlivaDiceNativeGUI 的主要管理流程，无需 Tk 窗口。仓库内包含完整的 React、Vite、Tailwind 前端源码、Python 插件、测试和构建脚本。
+青果骰的跨平台浏览器管理界面，作为 OlivOS 插件与 OlivaDiceCore 在同一进程中运行。此分支注册为“OlivaDice WebUI（独立服务版）”，命名空间为 `OlivaDiceWebUIStandalone`。它覆盖 OlivaDiceNativeGUI 的主要管理流程，无需 Tk 窗口。
 
 > 当前 `standalone-server` 分支是插件自行监听端口的独立服务版，默认地址为 `http://127.0.0.1:8765/`。使用 OlivOS 官方 WebUI 插件页面和消息桥的版本请切换到 `main` 分支。
 
@@ -9,11 +9,11 @@
 | 路径 | 用途 |
 | --- | --- |
 | `frontend/` | 可独立安装依赖并构建的前端源码 |
-| `OlivaDiceWebUI/` | OlivOS 插件与已构建的静态页面，可直接复制到 `plugin/app/` |
+| `OlivaDiceWebUI/` | 独立服务版源码；打包时安装目录转换为 `OlivaDiceWebUIStandalone/` |
 | `tests/` | 后端接口与页面服务测试、无需真实账号的演示服务 |
 | `scripts/package.py` | 从当前源码生成 OlivOS 安装 ZIP |
-| `scripts/publish_release.py` | 为通过验证的 `main` 构建编号并发布 Release |
-| [Releases](https://github.com/ShiaNyaa/OlivaDiceWebUI/releases/latest) | 自动构建的安装 ZIP 下载页 |
+| `scripts/publish_release.py` | 为独立服务版安装包写入发布版本号 |
+| [Actions](https://github.com/ShiaNyaa/OlivaDiceWebUI/actions) | `standalone-server` 分支的自动构建附件 |
 
 ## 管理范围
 
@@ -33,27 +33,27 @@
 ## 安装与打开
 
 1. 在目标机器的 OlivOS 中安装 OlivaDiceCore；需要账号迁移、备份或市场时，再安装对应的 OlivaDiceMaster / OlivaDiceOdyssey。
-2. 从 [最新 Release](https://github.com/ShiaNyaa/OlivaDiceWebUI/releases/latest) 下载 `OlivaDiceWebUI-YYYYMMDD.N.zip`，解压到 OlivOS 的 `plugin/app/`。开发调试时也可以先构建前端，再复制本仓库的 `OlivaDiceWebUI/` 目录。安装结果应是 `plugin/app/OlivaDiceWebUI/app.json`，并包含 Python 文件、说明 JSON 和 `web/` 构建产物。
-3. 启动 OlivOS，默认在运行 OlivOS 的机器上访问 `http://127.0.0.1:8765/`。远程访问见下一节。若宿主菜单可用，也可点击“打开青果骰 WebUI”。
-4. 首次启动会生成 `plugin/data/OlivaDiceWebUI/admin-token.txt`，把其中的令牌输入页面。令牌只存在当前浏览器标签页的 `sessionStorage` 中，关闭标签页后需重新输入。
+2. 从 `standalone-server` 的 [GitHub Actions](https://github.com/ShiaNyaa/OlivaDiceWebUI/actions) 成功构建中下载 `OlivaDiceWebUIStandalone-package` 附件，解压其中的 `OlivaDiceWebUIStandalone-*.zip` 到 OlivOS 的 `plugin/app/`。安装结果应是 `plugin/app/OlivaDiceWebUIStandalone/app.json`。
+3. 启动 OlivOS，默认在运行 OlivOS 的机器上访问 `http://127.0.0.1:8765/`。远程访问见下一节。若宿主菜单可用，也可点击“打开青果骰独立 WebUI”。
+4. 首次启动会生成 `plugin/data/OlivaDiceWebUIStandalone/admin-token.txt`，把其中的令牌输入页面。令牌只存在当前浏览器标签页的 `sessionStorage` 中，关闭标签页后需重新输入。
 
 所有 API 都需要令牌；请勿将令牌文件加入版本库或公开目录。WebUI 可以在支持 OlivOS 和 Core 的 Windows、macOS 或 Linux 环境中使用；实际宿主兼容性仍取决于所安装的 OlivOS 发行版及其他插件。
 
-登录后可在“系统 → 服务设置”修改监听地址、端口与远程访问地址。配置保存在 OlivOS 运行目录的 `plugin/data/OlivaDiceWebUI/network.json`，重启 OlivOS 后生效。已有环境变量 `OLIVADICE_WEBUI_BIND`、`OLIVADICE_WEBUI_PORT` 和 `OLIVADICE_WEBUI_PUBLIC_ORIGIN` 仍可使用，并优先于页面保存值；页面会标出被环境变量覆盖的字段。
+登录后可在“系统 → 服务设置”修改监听地址、端口与远程访问地址。配置保存在 OlivOS 运行目录的 `plugin/data/OlivaDiceWebUIStandalone/network.json`，重启 OlivOS 后生效。环境变量 `OLIVADICE_STANDALONE_WEBUI_BIND`、`OLIVADICE_STANDALONE_WEBUI_PORT` 和 `OLIVADICE_STANDALONE_WEBUI_PUBLIC_ORIGIN` 优先于页面保存值；页面会标出被环境变量覆盖的字段。
 
 ## 远程访问
 
 WebUI 使用当前浏览器地址访问同源 API。默认监听 `127.0.0.1`。局域网或 VPN 中直接访问时，可在“服务设置”填入监听地址 `0.0.0.0`、端口，以及浏览器实际使用的远程访问地址，例如 `http://192.168.1.10:8765`，然后重启 OlivOS。也可以在启动前使用环境变量：
 
 ```sh
-OLIVADICE_WEBUI_BIND=0.0.0.0 \
-OLIVADICE_WEBUI_PUBLIC_ORIGIN=http://192.168.1.10:8765 \
+OLIVADICE_STANDALONE_WEBUI_BIND=0.0.0.0 \
+OLIVADICE_STANDALONE_WEBUI_PUBLIC_ORIGIN=http://192.168.1.10:8765 \
 python main.py
 ```
 
-把示例 IP 换成 OlivOS 主机的地址，然后从其他设备打开该 URL。`OLIVADICE_WEBUI_PUBLIC_ORIGIN` 必须与浏览器地址栏里的协议、域名/IP、端口一致，不含路径。服务端会校验 `Host` 与写入请求的 `Origin`，不匹配时拒绝访问。
+把示例 IP 换成 OlivOS 主机的地址，然后从其他设备打开该 URL。`OLIVADICE_STANDALONE_WEBUI_PUBLIC_ORIGIN` 必须与浏览器地址栏里的协议、域名/IP、端口一致，不含路径。服务端会校验 `Host` 与写入请求的 `Origin`，不匹配时拒绝访问。
 
-通过 HTTPS 反向代理公开时，保留默认的本机监听，并在“服务设置”的远程访问地址填写 `https://dice.example.com`（或使用 `OLIVADICE_WEBUI_PUBLIC_ORIGIN` 环境变量）；代理转发到 `127.0.0.1:8765`，且保留原始 `Host` 头。公网访问应使用 HTTPS 或 VPN，避免管理令牌通过明文 HTTP 传输。也可以通过 SSH 端口转发访问本机监听的服务：`ssh -L 8765:127.0.0.1:8765 user@server`。
+通过 HTTPS 反向代理公开时，保留默认的本机监听，并在“服务设置”的远程访问地址填写 `https://dice.example.com`（或使用 `OLIVADICE_STANDALONE_WEBUI_PUBLIC_ORIGIN` 环境变量）；代理转发到 `127.0.0.1:8765`，且保留原始 `Host` 头。公网访问应使用 HTTPS 或 VPN，避免管理令牌通过明文 HTTP 传输。也可以通过 SSH 端口转发访问本机监听的服务：`ssh -L 8765:127.0.0.1:8765 user@server`。
 
 直接打开 `index.html` 只是静态外观预览；`file://` 无法连接本机 API。
 
@@ -71,7 +71,7 @@ python3 -m unittest discover -s tests -v
 python3 scripts/package.py
 ```
 
-构建结果写入 `OlivaDiceWebUI/web/`。`python3 scripts/package.py` 会在本地生成 `dist/` 安装包；该目录不提交到 Git。无需真实账号的演示服务：
+构建结果写入源码目录 `OlivaDiceWebUI/web/`。`python3 scripts/package.py` 会生成 `dist/OlivaDiceWebUIStandalone-*.zip`，包内插件目录为 `OlivaDiceWebUIStandalone/`；该目录不提交到 Git。无需真实账号的演示服务：
 
 ```sh
 python3 tests/demo_server.py

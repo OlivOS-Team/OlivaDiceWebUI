@@ -28,21 +28,21 @@ def stamp_archive(source, version):
     if not match:
         raise ValueError('Invalid release version: {}'.format(version))
     # GitHub normalizes parentheses in uploaded asset filenames to periods.
-    target = source.with_name('OlivaDiceWebUI-{}.{}.zip'.format(*match.groups()))
+    target = source.with_name('OlivaDiceWebUIStandalone-{}.{}.zip'.format(*match.groups()))
     temporary = target.with_suffix('.zip.tmp')
     found_manifest = False
     try:
         with ZipFile(source) as original, ZipFile(temporary, 'w') as stamped:
             for item in original.infolist():
                 data = original.read(item.filename)
-                if item.filename == 'OlivaDiceWebUI/app.json':
+                if item.filename == 'OlivaDiceWebUIStandalone/app.json':
                     manifest = json.loads(data)
                     manifest['version'] = version
                     data = (json.dumps(manifest, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
                     found_manifest = True
                 stamped.writestr(item, data)
         if not found_manifest:
-            raise ValueError('Plugin archive is missing OlivaDiceWebUI/app.json')
+            raise ValueError('Plugin archive is missing OlivaDiceWebUIStandalone/app.json')
         temporary.replace(target)
     finally:
         temporary.unlink(missing_ok=True)
@@ -75,7 +75,7 @@ def reserve_tag(repo, sha, day):
 
 def main():
     if len(sys.argv) != 2:
-        raise SystemExit('Usage: publish_release.py dist/OlivaDiceWebUI-<version>.zip')
+        raise SystemExit('Usage: publish_release.py dist/OlivaDiceWebUIStandalone-<version>.zip')
     source = Path(sys.argv[1])
     if not source.is_file():
         raise SystemExit('Package not found: {}'.format(source))
@@ -83,7 +83,7 @@ def main():
     sha = os.environ['GITHUB_SHA']
     tag = reserve_tag(repo, sha, beijing_day())
     asset = stamp_archive(source, tag[1:])
-    labelled_asset = '{}#OlivaDiceWebUI {}'.format(asset, tag)
+    labelled_asset = '{}#OlivaDiceWebUIStandalone {}'.format(asset, tag)
     released = gh('release', 'create', tag, labelled_asset, '--repo', repo,
                   '--verify-tag', '--generate-notes', '--latest')
     print(released.stdout.strip())

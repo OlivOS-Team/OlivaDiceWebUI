@@ -22,19 +22,19 @@ class ReleaseVersionTest(unittest.TestCase):
 
     def test_stamped_zip_matches_release_version(self):
         with tempfile.TemporaryDirectory() as directory:
-            original = Path(directory) / 'OlivaDiceWebUI-dev.zip'
+            original = Path(directory) / 'OlivaDiceWebUIStandalone-dev.zip'
             with ZipFile(original, 'w') as archive:
-                archive.writestr('OlivaDiceWebUI/app.json', json.dumps({'version': 'dev'}))
-                archive.writestr('OlivaDiceWebUI/main.py', 'print("ok")')
+                archive.writestr('OlivaDiceWebUIStandalone/app.json', json.dumps({'version': 'dev'}))
+                archive.writestr('OlivaDiceWebUIStandalone/main.py', 'print("ok")')
             stamped = stamp_archive(original, '20260918(2)')
-            self.assertEqual(stamped.name, 'OlivaDiceWebUI-20260918.2.zip')
+            self.assertEqual(stamped.name, 'OlivaDiceWebUIStandalone-20260918.2.zip')
             with ZipFile(stamped) as archive:
-                self.assertEqual(json.loads(archive.read('OlivaDiceWebUI/app.json'))['version'],
+                self.assertEqual(json.loads(archive.read('OlivaDiceWebUIStandalone/app.json'))['version'],
                                  '20260918(2)')
-                self.assertEqual(archive.read('OlivaDiceWebUI/main.py'), b'print("ok")')
+                self.assertEqual(archive.read('OlivaDiceWebUIStandalone/main.py'), b'print("ok")')
             self.assertEqual(stamp_archive(stamped, '20260918(2)'), stamped)
             with ZipFile(stamped) as archive:
-                self.assertEqual(json.loads(archive.read('OlivaDiceWebUI/app.json'))['version'],
+                self.assertEqual(json.loads(archive.read('OlivaDiceWebUIStandalone/app.json'))['version'],
                                  '20260918(2)')
 
     def test_reservation_moves_to_next_number_after_collision(self):

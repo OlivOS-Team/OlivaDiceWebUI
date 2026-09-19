@@ -168,11 +168,18 @@ class WebUITest(unittest.TestCase):
         opened = []
         webbrowser.open = lambda url: opened.append(url) or True
         try:
-            event = types.SimpleNamespace(data=types.SimpleNamespace(event='OlivaDiceWebUI_001'))
+            event = types.SimpleNamespace(data=types.SimpleNamespace(event='OlivaDiceWebUIStandalone_001'))
             main.Event.menu(event, FakeProc())
             self.assertEqual(opened, ['http://127.0.0.1:8765/'])
         finally:
             webbrowser.open = original
+
+    def test_plugin_registration_is_standalone(self):
+        manifest = json.loads((Path(__file__).parents[1] / 'OlivaDiceWebUI/app.json').read_text(encoding='utf-8'))
+        self.assertEqual(manifest['name'], 'OlivaDice WebUI（独立服务版）')
+        self.assertEqual(manifest['namespace'], 'OlivaDiceWebUIStandalone')
+        self.assertEqual(manifest['menu_config'][0]['event'], 'OlivaDiceWebUIStandalone_001')
+        self.assertEqual(server.CONFIG_DIR, Path('./plugin/data/OlivaDiceWebUIStandalone'))
 
     def test_market_install_uses_selected_catalog_entry(self):
         module = types.ModuleType('OlivaDiceOdyssey')
