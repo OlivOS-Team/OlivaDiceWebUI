@@ -311,16 +311,30 @@ _thread = None
 
 
 def _token():
+    """Return the admin token, generating it once and never rotating it again.
+
+    The file is the single source of truth: as long as it holds a usable token that
+    value is reused across restarts, so a browser that saved it keeps working. Only a
+    missing or unreadable file triggers a new one, and a malformed file is rewritten
+    rather than left in place to fail every future start.
+    """
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    if TOKEN_FILE.exists():
-        token = TOKEN_FILE.read_text(encoding='ascii').strip()
-        if len(token) != 64 or any(c not in '0123456789abcdef' for c in token):
-            raise RuntimeError('admin-token.txt 内容无效')
-        return token
+    try:
+        existing = TOKEN_FILE.read_text(encoding='ascii').strip()
+    except (OSError, UnicodeDecodeError):
+        existing = ''
+    if len(existing) == 64 and all(c in '0123456789abcdef' for c in existing):
+        return existing
     token = secrets.token_hex(32)
-    fd = os.open(str(TOKEN_FILE), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    with os.fdopen(fd, 'w', encoding='ascii') as stream:
-        stream.write(token + '\n')
+    data = (token + '\n').encode('ascii')
+    temporary = TOKEN_FILE.with_name(TOKEN_FILE.name + '.tmp')
+    with open(temporary, 'wb') as stream:
+        stream.write(data)
+    try:
+        os.chmod(temporary, 0o600)
+    except OSError:
+        pass
+    os.replace(temporary, TOKEN_FILE)
     return token
 
 

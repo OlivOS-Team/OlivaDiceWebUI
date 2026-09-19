@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, CheckCircle2, LoaderCircle, Search } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Check, ChevronDown, LoaderCircle, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -58,4 +58,83 @@ export function Notice({ message, error, onClose }: { message: string; error: bo
 }
 export function SectionTitle({ eyebrow, title, description, action }: { eyebrow?: string; title: string; description?: string; action?: React.ReactNode }) {
   return <div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div>{eyebrow && <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-600">{eyebrow}</div>}<h2 className="text-xl font-semibold tracking-tight">{title}</h2>{description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}</div>{action}</div>;
+}
+
+export type SelectOption = { value: string; label: string; disabled?: boolean };
+
+/**
+ * A dropdown drawn by the page instead of the operating system.
+ *
+ * A native <select> renders its popup with the platform's own theme and colours, which
+ * looks foreign inside this panel. This keeps the trigger and the option list in the
+ * same visual language as the rest of the UI while still supporting keyboard use.
+ */
+export function Select({ value, options, onChange, ariaLabel, size = 'md', className = '', placeholder }: {
+  value: string;
+  options: SelectOption[];
+  onChange: (value: string) => void;
+  ariaLabel?: string;
+  size?: 'sm' | 'md';
+  className?: string;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [active, setActive] = React.useState(-1);
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const current = options.find(option => option.value === value);
+  const height = size === 'sm' ? 'h-8 text-xs' : 'h-9 text-sm';
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [open]);
+
+  const commit = (next: string) => {
+    setOpen(false);
+    if (next !== value) onChange(next);
+  };
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Escape') { setOpen(false); return; }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (!open) { setActive(options.findIndex(option => option.value === value)); setOpen(true); return; }
+      const option = options[active];
+      if (option && !option.disabled) commit(option.value);
+      return;
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (!open) { setActive(options.findIndex(option => option.value === value)); setOpen(true); return; }
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      let index = active;
+      for (let hop = 0; hop < options.length; hop += 1) {
+        index = (index + step + options.length) % options.length;
+        if (!options[index]?.disabled) break;
+      }
+      setActive(index);
+    }
+  };
+
+  return <div ref={rootRef} className={`relative ${className}`}>
+    <button type="button" aria-haspopup="listbox" aria-expanded={open} aria-label={ariaLabel}
+      onClick={() => { setActive(options.findIndex(option => option.value === value)); setOpen(current => !current); }}
+      onKeyDown={onKeyDown}
+      className={`flex w-full items-center justify-between gap-2 rounded-lg border bg-card px-3 ${height} text-left font-medium text-foreground outline-none transition-colors hover:bg-accent focus:ring-2 focus:ring-brand-300`}>
+      <span className={`truncate ${current ? '' : 'text-muted-foreground'}`}>{current?.label ?? placeholder ?? ''}</span>
+      <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+    </button>
+    {open && <div role="listbox" aria-label={ariaLabel} className="absolute z-50 mt-1 max-h-64 w-full min-w-max overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg">
+      {options.map((option, index) => <div key={option.value} role="option" aria-selected={option.value === value}
+        onMouseEnter={() => setActive(index)}
+        onMouseDown={event => { event.preventDefault(); if (!option.disabled) commit(option.value); }}
+        className={`flex cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2 text-sm ${option.disabled ? 'cursor-not-allowed opacity-50' : index === active ? 'bg-accent text-accent-foreground' : ''}`}>
+        <span className="truncate">{option.label}</span>
+        {option.value === value && <Check className="h-4 w-4 shrink-0 text-brand-600" />}
+      </div>)}
+    </div>}
+  </div>;
 }

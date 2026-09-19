@@ -1,10 +1,10 @@
 import React from 'react';
-import { Archive, ArrowRight, BookOpenText, Bot, ChevronDown, Files, Globe2, LayoutDashboard, LogOut, Menu, MessageSquareReply, Moon, PanelLeft, PanelTop, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, X } from 'lucide-react';
+import { Archive, ArrowRight, BookOpenText, Bot, Files, Globe2, LayoutDashboard, LogOut, Menu, MessageSquareReply, Moon, PanelLeft, PanelTop, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { api, botQuery, standalone, type Account, type Deck, type HelpDoc, type Reply, type Setting } from './api';
-import { Notice, SectionTitle, useConfirm } from './ui';
+import { Notice, SectionTitle, Select, useConfirm } from './ui';
 import { AccountsPage } from './pages/AccountsPage';
 import { BackupPage } from './pages/BackupPage';
 import olivaLogo from './assets/olivos.svg?raw';
@@ -119,9 +119,12 @@ export function OlivaDiceApp() {
       </div>
     </main>
   </div>;
-  const accountSelect = (mobile = false) => <div className={`relative ${mobile ? 'sm:hidden' : 'hidden sm:block'}`}><select aria-label={mobile ? '移动端账号选择' : '当前账号'} value={bot} onChange={event => void selectBot(event.target.value)} className="h-9 max-w-56 appearance-none truncate rounded-lg border bg-card py-1 pl-3 pr-8 text-xs font-medium text-foreground outline-none focus:ring-2 focus:ring-brand-300">{accounts.map(account => <option key={account.hash} value={account.hash}>{account.label}</option>)}</select>{!mobile && <ChevronDown className="pointer-events-none absolute right-2 top-2.5 h-4 w-4 text-muted-foreground" />}</div>;
+  const accountSelect = (mobile = false) => <div className={mobile ? 'sm:hidden' : 'hidden sm:block'}><Select ariaLabel={mobile ? '移动端账号选择' : '当前账号'} size="sm" className="w-56" value={bot} onChange={value => void selectBot(value)} options={accounts.map(account => ({ value: account.hash, label: account.label }))} /></div>;
   const controls = () => <div className="flex items-center gap-1">{accountSelect()}<Button size="icon" variant="ghost" onClick={() => setTheme(value => value === 'dark' ? 'light' : 'dark')} title={theme === 'dark' ? '切换为浅色模式' : '切换为深色模式'}>{theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</Button><Button size="icon" variant="ghost" onClick={() => setNavLayout(value => value === 'side' ? 'top' : 'side')} title={navLayout === 'side' ? '切换为顶部导航' : '切换为左侧导航'}>{navLayout === 'side' ? <PanelTop className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}</Button><Button size="icon" variant="ghost" onClick={() => void connect(token)} title="刷新账号列表"><RotateCcw className="h-4 w-4" /></Button>{standalone && <Button size="icon" variant="ghost" onClick={() => void logout()} title="退出管理"><LogOut className="h-4 w-4" /></Button>}</div>;
-  const page = <main className="mx-auto max-w-[1440px] px-4 py-6 md:px-8 md:py-8"><div className="mb-4 flex min-h-9 items-center justify-between gap-3 text-xs text-muted-foreground"><span>{view === 'backup' || view === 'server' ? '当前范围：全局设置' : `当前范围：${current?.label || '全局设置'}`}</span>{connected && accountSelect(true)}</div>
+  const globalScope = view === 'backup' || view === 'server' || !current || bot === 'unity';
+  const scopeLabel = globalScope ? '全局设置' : (current?.label || '全局设置');
+  const scopeBadge = <span className="inline-flex items-center gap-1.5"><span>当前范围：</span><span className={globalScope ? 'font-semibold text-rose-600 dark:text-rose-400' : 'font-semibold text-emerald-600 dark:text-amber-300'}>{scopeLabel}</span></span>;
+  const page = <main className="mx-auto max-w-[1440px] px-4 py-6 md:px-8 md:py-8"><div className="mb-4 flex min-h-9 items-center justify-between gap-3 text-xs text-muted-foreground">{scopeBadge}{connected && accountSelect(true)}</div>
     <Notice message={notice.message} error={notice.error} onClose={() => notify('')} />
     {view === 'dashboard' && <Dashboard token={token} bot={bot} accounts={accounts} navigate={navigate} notify={notify} />}
     {view === 'accounts' && <AccountsPage token={token} bot={bot} accounts={accounts} selectBot={selectBot} notify={notify} />}

@@ -308,8 +308,12 @@ class WebUITest(unittest.TestCase):
         page = root / 'OlivaDiceWebUIStandalone/web/olivadice.html'
         self.assertTrue(page.is_file(), 'standalone frontend must be built before packaging')
         self.assertIn('olivadice.html', standalone_server.WEB_ASSETS)
-        self.assertIn('assets/olivadice-DmLAIUO-.js', standalone_server.WEB_ASSETS)
-        self.assertIn('assets/olivadice-Dm75JXLS.css', standalone_server.WEB_ASSETS)
+        # Vite fingerprints the bundle names, so they change on every rebuild; assert on
+        # the shape instead of pinning the current hashes.
+        self.assertTrue(any(name.startswith('assets/olivadice-') and name.endswith('.js')
+                            for name in standalone_server.WEB_ASSETS), sorted(standalone_server.WEB_ASSETS))
+        self.assertTrue(any(name.startswith('assets/olivadice-') and name.endswith('.css')
+                            for name in standalone_server.WEB_ASSETS), sorted(standalone_server.WEB_ASSETS))
         self.assertEqual(standalone_server.plugin_version(),
                          json.loads((root / 'OlivaDiceWebUIStandalone/app.json').read_text(encoding='utf-8'))['version'])
         self.assertEqual(bridge.plugin_version(),
@@ -357,7 +361,9 @@ class WebUITest(unittest.TestCase):
                 thread = threading.Thread(target=httpd.serve_forever, daemon=True)
                 thread.start()
                 try:
-                    for path, marker in (('/', b'id="root"'), ('/assets/olivadice-Dm75JXLS.css', b'')):
+                    stylesheet = next(name for name in standalone_server.WEB_ASSETS
+                                      if name.startswith('assets/olivadice-') and name.endswith('.css'))
+                    for path, marker in (('/', b'id="root"'), ('/' + stylesheet, b'')):
                         connection = http.client.HTTPConnection('127.0.0.1', httpd.server_port)
                         connection.request('GET', path)
                         response = connection.getresponse()
