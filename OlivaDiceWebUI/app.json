@@ -1,5 +1,5 @@
 {
-  "name": "OlivaDice WebUI",
+  "name": "OlivaDice WebUI（官方接入版）",
   "author": "希亚(ShiaNyaa)",
   "namespace": "OlivaDiceWebUI",
   "info": "接入 OlivOS WebUI 的青果骰管理页面",

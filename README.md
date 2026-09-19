@@ -1,6 +1,6 @@
 # OlivaDiceWebUI
 
-青果骰管理页面，以插件页面方式接入 OlivOS 官方 WebUI。插件与 OlivaDiceCore 在同一进程中运行，由 OlivOS 负责页面挂载、登录认证和消息转发；本插件不再启动独立 HTTP 服务，也不会接触 OlivOS WebUI 的令牌。
+青果骰管理页面，在 `main` 分支注册为“OlivaDice WebUI（官方接入版）”，以插件页面方式接入 OlivOS 官方 WebUI。插件与 OlivaDiceCore 在同一进程中运行，由 OlivOS 负责页面挂载、登录认证和消息转发；本插件不再启动独立 HTTP 服务，也不会接触 OlivOS WebUI 的令牌。
 
 当前接入方式面向 OlivOS `0.11.90-alpha.2` 及更新版本，依据官方的 [WebUI 使用文档](https://doc.olivos.wiki/User/WebUI/) 和 [插件 WebUI 开发文档](https://doc.olivos.wiki/DevPlugin/WebUI/)。
 
