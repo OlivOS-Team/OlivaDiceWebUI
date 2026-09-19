@@ -18,8 +18,8 @@
 | `OlivaDiceWebUIStandalone/` | 独立 HTTP 服务适配器及其构建页面 |
 | `OlivaDiceWebUI/bridge.py` | 官方 WebUI 消息桥的请求分发及分块文件传输 |
 | `tests/` | 后端服务、桥接和打包测试 |
-| `scripts/package.py` | 生成 OlivOS 安装 ZIP |
-| [Releases](https://github.com/ShiaNyaa/OlivaDiceWebUI/releases/latest) | 同时提供官方接入版和独立服务版安装 ZIP |
+| `scripts/package.py` | 生成 OlivOS 安装 OPK |
+| [Releases](https://github.com/ShiaNyaa/OlivaDiceWebUI/releases/latest) | 同时提供官方接入版和独立服务版安装 OPK |
 
 ## 管理范围
 
@@ -40,7 +40,7 @@
 ## 安装与打开
 
 1. 安装 OlivOS 和 OlivaDiceCore。需要账号迁移、备份或牌堆市场时，再安装 OlivaDiceMaster / OlivaDiceOdyssey。
-2. 从 [最新 Release](https://github.com/ShiaNyaa/OlivaDiceWebUI/releases/latest) 选择下载：`OlivaDiceWebUI-YYYYMMDD.N.zip` 为官方接入版，`OlivaDiceWebUIStandalone-YYYYMMDD.N.zip` 为独立服务版。两者注册名、namespace、安装目录和自身数据目录均不同，可以同时安装。
+2. 从 [最新 Release](https://github.com/ShiaNyaa/OlivaDiceWebUI/releases/latest) 选择下载：`OlivaDiceWebUI-YYYYMMDD.N.opk` 为官方接入版，`OlivaDiceWebUIStandalone-YYYYMMDD.N.opk` 为独立服务版。将所需 OPK 放入 OlivOS 的 `plugin/app` 目录后重启。两者注册名、namespace 和自身数据目录均不同，可以同时安装。
 3. 官方接入版：登录 OlivOS WebUI 后，从侧栏“插件页面”打开“青果骰管理”。不要单独打开插件 HTML；脱离宿主 iframe 时没有消息桥。
 4. 独立服务版：默认访问 `http://127.0.0.1:8765/`，管理令牌位于 `plugin/data/OlivaDiceWebUIStandalone/admin-token.txt`；监听设置保存在同目录的 `network.json`。
 
@@ -62,11 +62,11 @@ python3 -m unittest discover -s tests -v
 python3 scripts/package.py
 ```
 
-一次前端构建会生成 `OlivaDiceWebUI/webui/olivadice.html` 和 `OlivaDiceWebUIStandalone/web/`；一次打包会在 `dist/` 生成两个 ZIP。官方版是无外部资源的单文件页面，以兼容 OlivOS 插件沙箱；独立版保留普通静态资源，交由自身 HTTP 服务提供。
+一次前端构建会生成 `OlivaDiceWebUI/webui/olivadice.html` 和 `OlivaDiceWebUIStandalone/web/`；一次打包会在 `dist/` 生成两个 OPK（ZIP 格式，且 `app.json` 位于压缩包根目录）。官方版是无外部资源的单文件页面，以兼容 OlivOS 插件沙箱；独立版保留普通静态资源，交由自身 HTTP 服务提供。
 
 ## 版本与自动发布
 
-推送到 `main` 后，GitHub Actions 会从同一份源码构建、测试并打包两个版本。成功后使用同一个北京时间版本号创建 Release，同时上传 `OlivaDiceWebUI-YYYYMMDD.N.zip` 和 `OlivaDiceWebUIStandalone-YYYYMMDD.N.zip`。
+推送到 `main` 后，GitHub Actions 会从同一份源码构建、测试并打包两个版本。成功后使用同一个北京时间版本号创建 Release，同时上传 `OlivaDiceWebUI-YYYYMMDD.N.opk` 和 `OlivaDiceWebUIStandalone-YYYYMMDD.N.opk`。
 
 ## 许可与致谢
 

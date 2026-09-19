@@ -30,16 +30,15 @@ def included(source):
 def build_archive(plugin, install_name, web_dir, shared_files=()):
     if not (plugin / web_dir / 'olivadice.html').is_file():
         raise SystemExit('Missing {} frontend build: npm run build --prefix frontend'.format(install_name))
-    target = DIST / '{}-{}.zip'.format(install_name, version(plugin))
-    install_root = Path(install_name)
+    target = DIST / '{}-{}.opk'.format(install_name, version(plugin))
     with ZipFile(target, 'w', compression=ZIP_DEFLATED, compresslevel=9) as bundle:
         for source in sorted(plugin.rglob('*')):
             if included(source):
-                bundle.write(source, install_root / source.relative_to(plugin))
+                bundle.write(source, source.relative_to(plugin))
         for name in shared_files:
-            bundle.write(OFFICIAL / name, install_root / name)
+            bundle.write(OFFICIAL / name, name)
         for name in ('README.md', 'LICENSE'):
-            bundle.write(ROOT / name, install_root / name)
+            bundle.write(ROOT / name, name)
     return target
 
 
