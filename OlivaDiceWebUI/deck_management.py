@@ -44,7 +44,10 @@ def deck_files(proc, bot):
                 continue
             for path in folder.iterdir():
                 if path.is_file() and path.suffix.lower() in KINDS[kind][1]:
-                    results.append({'name': path.name, 'kind': kind, 'size': path.stat().st_size, 'scope': bot})
+                    groups = _loaded_groups(proc, bot, path.name)
+                    results.append({'name': path.name, 'kind': kind, 'size': path.stat().st_size,
+                                    'scope': bot, 'loaded': groups is not None,
+                                    'groupCount': len(groups or [])})
         return sorted(results, key=lambda item: item['name'].lower())
 
 
@@ -60,7 +63,25 @@ def _target(bot, kind, name):
     return _folder(bot, kind) / name
 
 
-def install_file(proc, bot, kind, name, raw):
+def _loaded_groups(proc, bot, name):
+    core = service._core()
+    data = getattr(core, 'drawCardData', None)
+    if data is None:
+        return None
+    indexes = getattr(data, 'dictDeckIndex', {})
+    targets = ['unity'] if bot == 'unity' else [service._content_hash(core, bot)]
+    if bot == 'unity':
+        targets.extend(service._content_hash(core, item) for item in service._bots(proc))
+    for target in targets:
+        index = indexes.get(target, {})
+        if isinstance(index, dict):
+            match = service._matching_deck(index, name)
+            if match and match[1]:
+                return match[1]
+    return None
+
+
+def install_file(proc, bot, kind, name, raw, verify=False):
     _scope(proc, bot)
     target = _target(bot, kind, name)
     if not isinstance(raw, bytes) or not raw or len(raw) > MAX_DECK_BYTES:
@@ -76,6 +97,9 @@ def install_file(proc, bot, kind, name, raw):
             temporary.write_bytes(raw)
             os.replace(temporary, target)
             core.drawCard.reloadDeck()
+            groups = _loaded_groups(proc, bot, name)
+            if verify and not groups:
+                raise service.InvalidInput('下载内容不是可加载的牌堆，已自动回滚')
         except Exception:
             temporary.unlink(missing_ok=True)
             if old is None:
@@ -87,7 +111,7 @@ def install_file(proc, bot, kind, name, raw):
             except Exception:
                 pass
             raise
-        return {'name': name, 'kind': kind, 'scope': bot}
+        return {'name': name, 'kind': kind, 'scope': bot, 'groups': groups or []}
 
 
 def remove_file(proc, bot, kind, name):
@@ -209,21 +233,21 @@ def market_install(proc, bot, kind, name):
     if not links:
         raise service.InvalidInput('此牌堆没有下载地址')
     last_error = None
-    data = None
+    result = None
+    ext = {'classic': '.json', 'yaml': '.yaml', 'excel': '.xlsx'}[kind]
     for link in links[:5]:
         try:
             data = _download(link, MAX_DECK_BYTES)
+            result = install_file(proc, bot, kind, name + ext, data, verify=True)
             break
         except Exception as exc:
             last_error = exc
-    if data is None:
-        raise service.InvalidInput('牌堆下载失败：{}'.format(last_error))
+    if result is None:
+        raise service.InvalidInput('牌堆下载或加载失败：{}'.format(last_error))
     resource_files = []
     for url in entry.get('resource_link', [])[:5] if isinstance(entry.get('resource_link'), list) else []:
         resource_files.extend(_safe_resources(_download(url, 30 * 1024 * 1024)))
-    ext = {'classic': '.json', 'yaml': '.yaml', 'excel': '.xlsx'}[kind]
     with service.LOCK:
-        result = install_file(proc, bot, kind, name + ext, data)
         root = Path('data')
         for relative, content in resource_files:
             path = root / relative

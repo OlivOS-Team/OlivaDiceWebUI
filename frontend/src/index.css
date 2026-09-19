@@ -185,3 +185,33 @@
 @media (prefers-reduced-motion: reduce) {
   .login-orb-a, .login-orb-b { animation: none; }
 }
+
+/* Legacy page utilities are kept for the shared frontend. These dark-mode
+   mappings let both the embedded and standalone builds use the same markup. */
+.dark .bg-white { background-color: hsl(var(--card)); }
+.dark .bg-white\/95 { background-color: hsl(var(--card) / 0.95); }
+.dark .bg-slate-50,
+.dark .bg-slate-50\/60,
+.dark .bg-slate-100,
+.dark .bg-slate-200 { background-color: hsl(var(--muted)); }
+.dark .hover\:bg-slate-50:hover { background-color: hsl(var(--muted)); }
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 { color: hsl(var(--foreground)); }
+.dark .text-slate-600,
+.dark .text-slate-500,
+.dark .text-slate-400,
+.dark .text-slate-300 { color: hsl(var(--muted-foreground)); }
+.dark .hover\:text-slate-900:hover { color: hsl(var(--foreground)); }
+.dark .border-slate-100,
+.dark .border-slate-200 { border-color: hsl(var(--border)); }
+.dark .bg-brand-50,
+.dark .bg-brand-50\/60 { background-color: rgb(8 47 73 / 0.55); }
+.dark .text-brand-900,
+.dark .text-brand-800,
+.dark .text-brand-700 { color: rgb(186 230 253); }
+.dark .border-brand-100,
+.dark .border-brand-200 { border-color: rgb(7 89 133 / 0.75); }
+.dark .bg-amber-50 { background-color: rgb(69 26 3 / 0.55); }
+.dark .text-amber-900 { color: rgb(253 230 138); }
+.dark .border-amber-200 { border-color: rgb(146 64 14); }

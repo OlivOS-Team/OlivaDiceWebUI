@@ -250,18 +250,33 @@ class WebUITest(unittest.TestCase):
     def test_market_install_uses_selected_catalog_entry(self):
         module = types.ModuleType('OlivaDiceOdyssey')
         module.webTool = types.SimpleNamespace(gExtiverseDeck={
-            'classic': [{'name': 'Example', 'download_link': ['https://example.test/deck.json']}],
+            'classic': [{'name': 'Example', 'download_link': [
+                'https://bad.example.test/deck.json', 'https://example.test/deck.json']}],
         })
         original_module = sys.modules.get('OlivaDiceOdyssey')
         original_download = deck_management._download
         sys.modules['OlivaDiceOdyssey'] = module
-        deck_management._download = lambda url, maximum: b'{"A":["B"]}'
+        downloads = []
+        def download(url, maximum):
+            downloads.append(url)
+            return b'<html>mirror error</html>' if 'bad.example' in url else b'{"A":["B"]}'
+        deck_management._download = download
+        target = Path(self.temp_dir.name) / 'bot-1/extend/deckclassic/Example.json'
+        def reload_deck():
+            try:
+                groups = list(json.loads(target.read_text(encoding='utf-8')))
+            except (OSError, ValueError):
+                self.fake.drawCardData.dictDeckIndex['bot-1'].pop('Example', None)
+            else:
+                self.fake.drawCardData.dictDeckIndex['bot-1']['Example'] = groups
+        self.fake.drawCard.reloadDeck = reload_deck
         class OdysseyProc(FakeProc):
             def get_plugin_list(self):
                 return super().get_plugin_list() + ['OlivaDiceOdyssey']
         try:
             deck_management.market_install(OdysseyProc(), 'bot-1', 'classic', 'Example')
-            self.assertEqual((Path(self.temp_dir.name) / 'bot-1/extend/deckclassic/Example.json').read_bytes(), b'{"A":["B"]}')
+            self.assertEqual(target.read_bytes(), b'{"A":["B"]}')
+            self.assertEqual(downloads, ['https://bad.example.test/deck.json', 'https://example.test/deck.json'])
             with self.assertRaises(service.InvalidInput):
                 deck_management.market_install(OdysseyProc(), 'bot-1', 'yaml', 'Example')
         finally:

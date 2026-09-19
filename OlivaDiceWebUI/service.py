@@ -85,7 +85,7 @@ def _content_hash(core, bot_hash):
 
 def accounts(proc):
     with LOCK:
-        result = [{'hash': 'unity', 'label': '全局配置', 'platform': 'global', 'model': '', 'id': 'unity'}]
+        result = [{'hash': 'unity', 'label': '全局设置（配置与牌堆）', 'platform': 'global', 'model': '', 'id': 'unity'}]
         for bot_hash, info in _bots(proc).items():
             platform = getattr(info, 'platform', {}) or {}
             name = str(platform.get('platform', '未知平台'))
@@ -269,6 +269,55 @@ def set_help_doc(proc, bot_hash, key, value=None, delete=False):
         return value
 
 
+def _deck_aliases(name):
+    """Return the names Core may derive from a deck filename.
+
+    Older Core releases use ``rstrip`` for extensions, so keep the historical
+    spelling in addition to the normal stem when matching a loaded index.
+    """
+    value = Path(name).name
+    lowered = value.lower()
+    aliases = {value, Path(value).stem}
+    for extension in ('.json5', '.json', '.yaml', '.yml', '.xlsx', '.xls'):
+        if lowered.endswith(extension):
+            aliases.add(value.rstrip(extension))
+    return {item.casefold() for item in aliases if item}
+
+
+def _matching_deck(index, filename):
+    aliases = _deck_aliases(filename)
+    for name, groups in index.items():
+        if isinstance(name, str) and isinstance(groups, list) and name.casefold() in aliases:
+            return name, groups
+    return None
+
+
+def _global_deck_index(proc, data):
+    """Read global deck entries, including compatibility with older Core builds."""
+    indexes = getattr(data, 'dictDeckIndex', {})
+    direct = indexes.get('unity', {})
+    result = dict(direct) if isinstance(direct, dict) else {}
+    root = Path(_core().data.dataDirRoot) / 'unity' / 'extend'
+    for folder, extensions in (('deckclassic', {'.json', '.json5'}),
+                               ('deckyaml', {'', '.yaml', '.yml'}),
+                               ('deckexcel', {'.xlsx', '.xls'})):
+        location = root / folder
+        if not location.is_dir():
+            continue
+        for path in location.iterdir():
+            if not path.is_file() or path.suffix.lower() not in extensions:
+                continue
+            for bot_hash in _bots(proc):
+                index = indexes.get(_content_hash(_core(), bot_hash), {})
+                if not isinstance(index, dict):
+                    continue
+                match = _matching_deck(index, path.name)
+                if match:
+                    result.setdefault(match[0], match[1])
+                    break
+    return result
+
+
 def decks(proc, bot_hash):
     _check_account(proc, bot_hash)
     with LOCK:
@@ -283,7 +332,8 @@ def decks(proc, bot_hash):
                           if isinstance(name, str) and isinstance(loaded.get(name), list)]
         result = ([{'name': '内置牌堆', 'groups': builtin_groups, 'count': len(builtin_groups)}]
                   if builtin_groups else [])
-        index = data.dictDeckIndex.get(content_hash, {})
+        index = (_global_deck_index(proc, data) if bot_hash == 'unity'
+                 else getattr(data, 'dictDeckIndex', {}).get(content_hash, {}))
         result.extend({'name': name, 'groups': groups, 'count': len(groups)}
                       for name, groups in index.items() if isinstance(name, str) and isinstance(groups, list))
         return result
@@ -296,6 +346,8 @@ def deck_group_count(proc, bot_hash):
         data = getattr(core, 'drawCardData', None)
         if data is None:
             return 0
+        if bot_hash == 'unity':
+            return len({group for deck in decks(proc, bot_hash) for group in deck['groups']})
         loaded = getattr(data, 'dictDeck', {}).get(_content_hash(core, bot_hash), {})
         return sum(isinstance(name, str) and isinstance(cards, list)
                    for name, cards in loaded.items())
