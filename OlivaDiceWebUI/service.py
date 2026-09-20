@@ -85,7 +85,7 @@ def _content_hash(core, bot_hash):
 
 def accounts(proc):
     with LOCK:
-        result = [{'hash': 'unity', 'label': '全局设置（配置与牌堆）', 'platform': 'global', 'model': '', 'id': 'unity'}]
+        result = [{'hash': 'unity', 'label': '全局设置', 'platform': 'global', 'model': '', 'id': 'unity'}]
         for bot_hash, info in _bots(proc).items():
             platform = getattr(info, 'platform', {}) or {}
             name = str(platform.get('platform', '未知平台'))

@@ -16,9 +16,9 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 try:
-    from . import deck_management, gui_parity, service
+    from . import chance_custom, deck_management, gui_parity, service
 except ImportError:  # Shared source lives in the official package before packaging.
-    from OlivaDiceWebUI import deck_management, gui_parity, service
+    from OlivaDiceWebUI import chance_custom, deck_management, gui_parity, service
 
 
 CONFIG_DIR = Path('./plugin/data/OlivaDiceWebUIStandalone')
@@ -455,6 +455,8 @@ def handler_factory(proc, token):
                     self._send(200, {'path': deck_management.deck_folder(proc, bot_hash)})
                 elif path.path == '/api/deck-market':
                     self._send(200, deck_management.market(proc, query.get('refresh', ['0'])[0] == '1'))
+                elif path.path == '/api/chance-custom':
+                    self._send(200, chance_custom.snapshot(proc, bot_hash))
                 elif path.path == '/api/account/export':
                     self._send(200, gui_parity.account_export(proc, bot_hash), 'application/zip', 'account_export_{}.zip'.format(bot_hash))
                 else:
@@ -468,7 +470,8 @@ def handler_factory(proc, token):
             if not self._request_ok(write=True):
                 return
             path = urlsplit(self.path)
-            if path.path in ('/api/account/import', '/api/deck-files/upload'):
+            if path.path in ('/api/account/import', '/api/deck-files/upload',
+                              '/api/chance-custom/packages/upload'):
                 self._binary_post(path)
                 return
             length = self.headers.get('Content-Length', '')
@@ -492,6 +495,10 @@ def handler_factory(proc, token):
                 if not isinstance(bot_hash, str):
                     raise service.InvalidInput('请选择账号')
                 path = urlsplit(self.path).path
+                if path == '/api/chance-custom/packages/export':
+                    raw, filename = chance_custom.export_package(proc, bot_hash, data)
+                    self._send(200, raw, 'application/zip', filename)
+                    return
                 if path == '/api/switches':
                     result = service.set_switch(proc, bot_hash, data.get('key'), data.get('value'))
                 elif path == '/api/replies':
@@ -520,6 +527,17 @@ def handler_factory(proc, token):
                     result = deck_management.remove_file(proc, bot_hash, data.get('kind'), data.get('name'))
                 elif path == '/api/deck-market/install':
                     result = deck_management.market_install(proc, bot_hash, data.get('kind'), data.get('name'))
+                elif path == '/api/chance-custom/rules':
+                    result = chance_custom.change_rule(
+                        proc, bot_hash, data.get('action'), data.get('rule'),
+                        data.get('originalKey'), data.get('revision', ''))
+                elif path == '/api/chance-custom/defaults':
+                    result = chance_custom.set_defaults(
+                        proc, bot_hash, data.get('values'), data.get('revision', ''))
+                elif path == '/api/chance-custom/packages/manage':
+                    result = chance_custom.manage_package(
+                        proc, bot_hash, data.get('action'), data.get('name'),
+                        data.get('revision', ''))
                 else:
                     self._error(404, '接口不存在')
                     return
@@ -531,7 +549,8 @@ def handler_factory(proc, token):
 
         def _binary_post(self, path):
             length = self.headers.get('Content-Length', '')
-            if not length.isdecimal() or int(length) > 100 * 1024 * 1024:
+            maximum = 8 * 1024 * 1024 if path.path == '/api/chance-custom/packages/upload' else 100 * 1024 * 1024
+            if not length.isdecimal() or int(length) > maximum:
                 self._error(413, '文件过大或长度无效')
                 return
             if self.headers.get('Content-Type', '').split(';')[0] not in ('application/zip', 'application/octet-stream'):
@@ -543,8 +562,12 @@ def handler_factory(proc, token):
             try:
                 if path.path == '/api/account/import':
                     result = gui_parity.account_import(proc, bot_hash, query.get('source', [''])[0], raw)
-                else:
+                elif path.path == '/api/deck-files/upload':
                     result = deck_management.install_file(proc, bot_hash, query.get('kind', [''])[0], query.get('name', [''])[0], raw)
+                else:
+                    result = chance_custom.import_package(
+                        proc, bot_hash, query.get('name', ['package.ccpk'])[0], raw,
+                        query.get('revision', [''])[0])
                 self._send(200, {'value': result})
             except service.InvalidInput as exc:
                 self._error(400, str(exc))

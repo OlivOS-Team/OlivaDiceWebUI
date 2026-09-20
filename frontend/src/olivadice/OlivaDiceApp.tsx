@@ -1,5 +1,5 @@
 import React from 'react';
-import { Archive, ArrowRight, BookOpenText, Bot, Files, Globe2, LayoutDashboard, LogOut, Menu, MessageSquareReply, Moon, PanelLeft, PanelTop, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, X } from 'lucide-react';
+import { Archive, ArrowRight, Blocks, BookOpenText, Bot, Files, Globe2, LayoutDashboard, LogOut, Menu, MessageSquareReply, Moon, PanelLeft, PanelTop, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { api, botQuery, standalone, type Account, type Deck, type HelpDoc, type 
 import { Notice, SectionTitle, Select, useConfirm } from './ui';
 import { AccountsPage } from './pages/AccountsPage';
 import { BackupPage } from './pages/BackupPage';
+import { ChanceCustomPage } from './pages/ChanceCustomPage';
 import olivaLogo from './assets/olivos.svg?raw';
 import { DecksPage } from './pages/DecksPage';
 import { HelpPage } from './pages/HelpPage';
@@ -14,13 +15,13 @@ import { RepliesPage } from './pages/RepliesPage';
 import { ServerPage } from './pages/ServerPage';
 import { SettingsPage } from './pages/SettingsPage';
 
-type View = 'dashboard' | 'accounts' | 'settings' | 'replies' | 'help' | 'decks' | 'backup' | 'server';
+type View = 'dashboard' | 'accounts' | 'settings' | 'replies' | 'chance-custom' | 'help' | 'decks' | 'backup' | 'server';
 type NavLayout = 'top' | 'side';
 type Theme = 'light' | 'dark';
-const labels: Record<View, string> = { dashboard: '工作台', accounts: '账号与骰主', settings: '核心配置', replies: '回复词', help: '帮助文档', decks: '牌堆管理', backup: '自动备份', server: '服务设置' };
+const labels: Record<View, string> = { dashboard: '工作台', accounts: '账号与骰主', settings: '核心配置', replies: '回复词', 'chance-custom': '程心自定义', help: '帮助文档', decks: '牌堆管理', backup: '自动备份', server: '服务设置' };
 const nav = [
   { heading: '概览', items: [{ id: 'dashboard' as View, icon: LayoutDashboard }, { id: 'accounts' as View, icon: Bot }] },
-  { heading: '内容管理', items: [{ id: 'replies' as View, icon: MessageSquareReply }, { id: 'help' as View, icon: BookOpenText }, { id: 'decks' as View, icon: Files }] },
+  { heading: '内容管理', items: [{ id: 'replies' as View, icon: MessageSquareReply }, { id: 'chance-custom' as View, icon: Blocks }, { id: 'help' as View, icon: BookOpenText }, { id: 'decks' as View, icon: Files }] },
   { heading: '系统', items: [{ id: 'settings' as View, icon: Settings2 }, { id: 'backup' as View, icon: Archive }, ...(standalone ? [{ id: 'server' as View, icon: Globe2 }] : [])] },
 ];
 const needsBot = (view: View) => ['replies', 'help'].includes(view);
@@ -130,6 +131,7 @@ export function OlivaDiceApp() {
     {view === 'accounts' && <AccountsPage token={token} bot={bot} accounts={accounts} selectBot={selectBot} notify={notify} />}
     {view === 'settings' && <SettingsPage token={token} bot={bot} notify={notify} />}
     {view === 'replies' && (bot === 'unity' ? <SelectAccount accounts={accounts} selectBot={selectBot} /> : <RepliesPage token={token} bot={bot} notify={notify} onDirtyChange={onDirtyChange} />)}
+    {view === 'chance-custom' && <ChanceCustomPage token={token} bot={bot} notify={notify} onDirtyChange={onDirtyChange} />}
     {view === 'help' && (bot === 'unity' ? <SelectAccount accounts={accounts} selectBot={selectBot} /> : <HelpPage token={token} bot={bot} notify={notify} onDirtyChange={onDirtyChange} />)}
     {view === 'decks' && <DecksPage token={token} bot={bot} notify={notify} />}
     {view === 'backup' && <BackupPage token={token} notify={notify} />}
