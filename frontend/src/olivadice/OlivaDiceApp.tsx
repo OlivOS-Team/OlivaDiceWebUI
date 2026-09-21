@@ -1,5 +1,5 @@
 import React from 'react';
-import { Archive, ArrowRight, BookOpenText, Bot, Files, Globe2, LayoutDashboard, LogOut, Menu, MessageSquareReply, Moon, PanelLeft, PanelTop, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, X } from 'lucide-react';
+import { Archive, ArrowRight, Blocks, BookOpenText, Bot, Files, Globe2, LayoutDashboard, LogOut, Menu, MessageSquareReply, Moon, PanelLeft, PanelTop, RotateCcw, Settings2, ShieldCheck, Sparkles, Sun, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { api, botQuery, standalone, type Account, type Deck, type HelpDoc, type 
 import { Notice, SectionTitle, Select, useConfirm } from './ui';
 import { AccountsPage } from './pages/AccountsPage';
 import { BackupPage } from './pages/BackupPage';
+import { ChanceCustomPage } from './pages/ChanceCustomPage';
 import olivaLogo from './assets/olivos.svg?raw';
 import { DecksPage } from './pages/DecksPage';
 import { HelpPage } from './pages/HelpPage';
@@ -14,13 +15,13 @@ import { RepliesPage } from './pages/RepliesPage';
 import { ServerPage } from './pages/ServerPage';
 import { SettingsPage } from './pages/SettingsPage';
 
-type View = 'dashboard' | 'accounts' | 'settings' | 'replies' | 'help' | 'decks' | 'backup' | 'server';
+type View = 'dashboard' | 'accounts' | 'settings' | 'replies' | 'chance-custom' | 'help' | 'decks' | 'backup' | 'server';
 type NavLayout = 'top' | 'side';
 type Theme = 'light' | 'dark';
-const labels: Record<View, string> = { dashboard: '工作台', accounts: '账号与骰主', settings: '核心配置', replies: '回复词', help: '帮助文档', decks: '牌堆管理', backup: '自动备份', server: '服务设置' };
+const labels: Record<View, string> = { dashboard: '工作台', accounts: '账号与骰主', settings: '核心配置', replies: '回复词', 'chance-custom': '程心自定义', help: '帮助文档', decks: '牌堆管理', backup: '自动备份', server: '服务设置' };
 const nav = [
   { heading: '概览', items: [{ id: 'dashboard' as View, icon: LayoutDashboard }, { id: 'accounts' as View, icon: Bot }] },
-  { heading: '内容管理', items: [{ id: 'replies' as View, icon: MessageSquareReply }, { id: 'help' as View, icon: BookOpenText }, { id: 'decks' as View, icon: Files }] },
+  { heading: '内容管理', items: [{ id: 'replies' as View, icon: MessageSquareReply }, { id: 'chance-custom' as View, icon: Blocks }, { id: 'help' as View, icon: BookOpenText }, { id: 'decks' as View, icon: Files }] },
   { heading: '系统', items: [{ id: 'settings' as View, icon: Settings2 }, { id: 'backup' as View, icon: Archive }, ...(standalone ? [{ id: 'server' as View, icon: Globe2 }] : [])] },
 ];
 const needsBot = (view: View) => ['replies', 'help'].includes(view);
@@ -28,12 +29,32 @@ const initialView = (): View => { const hash = location.hash.slice(1) as View; r
 const preferenceKey = (name: string) => `olivadice-${standalone ? 'standalone' : 'official'}-${name}`;
 const readPreference = <T extends string>(name: string, allowed: readonly T[], fallback: T): T => { try { const value = localStorage.getItem(preferenceKey(name)) as T | null; return value && allowed.includes(value) ? value : fallback; } catch { return fallback; } };
 const writePreference = (name: string, value: string) => { try { localStorage.setItem(preferenceKey(name), value); } catch { /* Official plugin frames may have an opaque origin. */ } };
+const copyText = async (value: string) => {
+  if (navigator.clipboard?.writeText) {
+    try { await navigator.clipboard.writeText(value); return; } catch { /* HTTP and embedded frames may deny the Clipboard API. */ }
+  }
+  const input = document.createElement('textarea');
+  input.value = value;
+  input.readOnly = true;
+  input.style.position = 'fixed';
+  input.style.left = '-9999px';
+  input.style.top = '0';
+  input.style.fontSize = '16px';
+  document.body.appendChild(input);
+  input.focus();
+  input.select();
+  input.setSelectionRange(0, value.length);
+  let copied = false;
+  try { copied = document.execCommand('copy'); } finally { input.remove(); }
+  if (!copied) throw new Error('copy unavailable');
+};
 type Shared = { token: string; bot: string; notify: (message: string, error?: boolean) => void };
 const LogoMark = ({ large = false }: { large?: boolean }) => <span aria-hidden="true" className={`block shrink-0 [&_svg]:h-full [&_svg]:w-full ${large ? 'h-44 w-44 brightness-0 invert' : 'h-10 w-10'}`} dangerouslySetInnerHTML={{ __html: olivaLogo }} />;
 
 function Dashboard({ token, bot, accounts, navigate, notify }: Shared & { accounts: Account[]; navigate: (view: View) => void }) {
   const [stats, setStats] = React.useState({ settings: 0, replies: 0, docs: 0, decks: 0, enabled: false });
   const [masterCommand, setMasterCommand] = React.useState<string | null>(null);
+  const [copyFallback, setCopyFallback] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const scope = bot === 'unity' ? accounts.find(item => item.hash !== 'unity')?.hash : bot;
   React.useEffect(() => { void api<{ command: string | null }>('/api/master-command', token).then(result => setMasterCommand(result.command)).catch(() => setMasterCommand(null)); }, [token]);
@@ -44,6 +65,11 @@ function Dashboard({ token, bot, accounts, navigate, notify }: Shared & { accoun
     api<{ decks: Deck[]; groupCount: number }>(`/api/decks${botQuery(scope)}`, token),
   ]).then(results => { if (!active) return; const [a, b, c, d] = results; setStats({ settings: a.status === 'fulfilled' ? a.value.switches.length : 0, enabled: a.status === 'fulfilled' && a.value.switches.some(item => item.key === 'globalEnable' && item.value === 1), replies: b.status === 'fulfilled' ? b.value.replies.length : 0, docs: c.status === 'fulfilled' ? c.value.docs.length : 0, decks: d.status === 'fulfilled' ? d.value.groupCount : 0 }); if (results.some(result => result.status === 'rejected')) notify('部分统计读取失败，请进入对应页面检查。', true); setLoading(false); }); return () => { active = false; }; }, [scope, token, notify]);
   const current = accounts.find(account => account.hash === scope);
+  const copyMasterCommand = async () => {
+    if (!masterCommand) return;
+    try { await copyText(masterCommand); setCopyFallback(false); notify('认证指令已复制'); }
+    catch { setCopyFallback(true); notify('自动复制受限，请在气泡中手动复制', true); }
+  };
   const cards = [
     { label: '机器人账号', value: accounts.length - 1, icon: Bot, action: 'accounts' as View },
     { label: '配置项', value: stats.settings, icon: Settings2, action: 'settings' as View },
@@ -51,7 +77,7 @@ function Dashboard({ token, bot, accounts, navigate, notify }: Shared & { accoun
     { label: '帮助词条', value: stats.docs, icon: BookOpenText, action: 'help' as View },
   ];
   return <><div className="banner-shadow relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-800 via-brand-700 to-brand-500 px-7 py-8 text-white md:px-10 md:py-10"><div className="relative z-10 max-w-2xl"><div className="flex items-center gap-2 text-[11px] font-bold tracking-[0.22em] text-brand-200"><Sparkles className="h-4 w-4" />OLIVADICE CONTROL CENTER</div><h2 className="mt-5 text-3xl font-bold tracking-tight md:text-4xl">青果骰管理工作台</h2><p className="mt-3 max-w-xl text-sm leading-7 text-brand-100">从账号出发，管理核心配置、回复词、帮助文档与牌堆。更改作用于当前运行的 OlivOS 进程。</p><Button className="mt-6 bg-sky-50 text-brand-800 hover:bg-sky-100 dark:bg-sky-200 dark:text-sky-950 dark:hover:bg-sky-100" onClick={() => navigate('accounts')}>查看账号 <ArrowRight className="ml-2 h-4 w-4" /></Button></div><div aria-hidden="true" className="absolute -right-24 -top-28 h-96 w-96 rotate-12 rounded-[5rem] border border-white/20 bg-white/5" /><div aria-hidden="true" className="pointer-events-none absolute -right-9 top-0 hidden h-72 w-72 rotate-12 items-center justify-center xl:flex rounded-[4rem] border border-white/20 bg-white/10"><div className="-rotate-12 opacity-80"><LogoMark large /></div></div></div>
-    {masterCommand && <Card className="mt-5 border-brand-100 bg-brand-50/60"><CardContent className="flex flex-wrap items-center gap-3 p-4"><div className="min-w-0 flex-1"><div className="text-sm font-semibold text-brand-900">成为骰主</div><p className="mt-1 text-xs text-brand-700">复制认证指令并发送给骰子。</p></div><Button size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(masterCommand).then(() => notify('认证指令已复制')).catch(() => notify('复制失败，请检查浏览器剪贴板权限', true))}>复制认证指令</Button></CardContent></Card>}
+    {masterCommand && <Card className="mt-5 border-brand-100 bg-brand-50/60"><CardContent className="flex flex-wrap items-center gap-3 p-4"><div className="min-w-0 flex-1"><div className="text-sm font-semibold text-brand-900">成为骰主</div><p className="mt-1 text-xs text-brand-700">复制认证指令并发送给骰子。</p></div><div className="relative"><Button size="sm" variant="outline" onClick={() => void copyMasterCommand()}>复制认证指令</Button>{copyFallback && <div role="status" className="absolute right-0 top-full z-30 mt-3 w-[min(22rem,calc(100vw-3rem))] rounded-xl border border-brand-200 bg-white p-3 text-left shadow-xl dark:border-brand-800 dark:bg-slate-900"><span aria-hidden="true" className="absolute -top-1.5 right-6 h-3 w-3 rotate-45 border-l border-t border-brand-200 bg-white dark:border-brand-800 dark:bg-slate-900" /><div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold text-slate-900 dark:text-slate-100">请手动复制认证指令</span><button className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-100" onClick={() => setCopyFallback(false)}>关闭</button></div><code className="mt-2 block select-all break-all rounded-lg bg-brand-50 px-3 py-2.5 text-xs leading-5 text-brand-900 dark:bg-brand-950/60 dark:text-brand-100">{masterCommand}</code><p className="mt-2 text-[11px] leading-4 text-slate-500">点击指令后全选，或在手机上长按复制。</p></div>}</div></CardContent></Card>}
     <div className="mt-7"><SectionTitle title="运行概况" description={scope ? `当前查看：${current?.label || scope}` : 'OlivOS 尚未加载机器人账号'} /></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{cards.map(item => <button key={item.label} onClick={() => navigate(item.action)} className="text-left"><Card className="h-full border-slate-200 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md"><CardContent className="p-5"><div className="flex items-center justify-between"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600"><item.icon className="h-4 w-4" /></span><ArrowRight className="h-4 w-4 text-slate-300" /></div><div className="mt-5 text-2xl font-semibold text-slate-900">{loading ? '—' : item.value}</div><div className="mt-1 text-xs text-slate-500">{item.label}</div></CardContent></Card></button>)}</div>
     <div className="mt-8 grid gap-5 lg:grid-cols-[1.5fr_1fr]"><Card className="border-slate-200 shadow-sm"><CardContent className="p-6"><div className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-brand-600" /><h3 className="font-semibold">当前账号</h3></div>{current ? <><div className="mt-5 flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-4 py-4"><div><div className="font-medium">{current.platform} · {current.id}</div><div className="mt-1 text-xs text-slate-500">{current.model || '默认模型'} · {scope}</div></div><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${stats.enabled ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'}`}>{loading ? '读取中' : stats.enabled ? '全局开关：开' : '全局开关：关'}</span></div><div className="mt-4 flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => navigate('settings')}>核心配置</Button><Button size="sm" variant="outline" onClick={() => navigate('accounts')}>骰主权限</Button></div></> : <p className="mt-5 text-sm text-slate-500">请先在 OlivOS 中配置机器人账号。</p>}</CardContent></Card><Card className="border-slate-200 shadow-sm"><CardContent className="p-6"><div className="flex items-center gap-2"><Files className="h-5 w-5 text-brand-600" /><h3 className="font-semibold">可抽取分组</h3></div><div className="mt-5 text-3xl font-semibold">{loading ? '—' : stats.decks}</div><p className="mt-1 text-sm text-slate-500">当前账号已加载的分组数量</p><Button className="mt-5" size="sm" variant="outline" onClick={() => navigate('decks')}>查看牌堆 <ArrowRight className="ml-2 h-4 w-4" /></Button></CardContent></Card></div>
   </>;
@@ -130,6 +156,7 @@ export function OlivaDiceApp() {
     {view === 'accounts' && <AccountsPage token={token} bot={bot} accounts={accounts} selectBot={selectBot} notify={notify} />}
     {view === 'settings' && <SettingsPage token={token} bot={bot} notify={notify} />}
     {view === 'replies' && (bot === 'unity' ? <SelectAccount accounts={accounts} selectBot={selectBot} /> : <RepliesPage token={token} bot={bot} notify={notify} onDirtyChange={onDirtyChange} />)}
+    {view === 'chance-custom' && <ChanceCustomPage token={token} bot={bot} notify={notify} onDirtyChange={onDirtyChange} />}
     {view === 'help' && (bot === 'unity' ? <SelectAccount accounts={accounts} selectBot={selectBot} /> : <HelpPage token={token} bot={bot} notify={notify} onDirtyChange={onDirtyChange} />)}
     {view === 'decks' && <DecksPage token={token} bot={bot} notify={notify} />}
     {view === 'backup' && <BackupPage token={token} notify={notify} />}

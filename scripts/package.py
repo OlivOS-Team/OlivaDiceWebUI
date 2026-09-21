@@ -10,6 +10,7 @@ DIST = ROOT / 'dist'
 OFFICIAL = ROOT / 'OlivaDiceWebUI'
 STANDALONE = ROOT / 'OlivaDiceWebUIStandalone'
 SHARED_FILES = (
+    'chance_custom.py',
     'deck_management.py',
     'gui_parity.py',
     'reply_notes.json',

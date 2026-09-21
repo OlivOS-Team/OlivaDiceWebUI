@@ -69,7 +69,7 @@ export type SelectOption = { value: string; label: string; disabled?: boolean };
  * looks foreign inside this panel. This keeps the trigger and the option list in the
  * same visual language as the rest of the UI while still supporting keyboard use.
  */
-export function Select({ value, options, onChange, ariaLabel, size = 'md', className = '', placeholder }: {
+export function Select({ value, options, onChange, ariaLabel, size = 'md', className = '', placeholder, placement = 'bottom' }: {
   value: string;
   options: SelectOption[];
   onChange: (value: string) => void;
@@ -77,6 +77,7 @@ export function Select({ value, options, onChange, ariaLabel, size = 'md', class
   size?: 'sm' | 'md';
   className?: string;
   placeholder?: string;
+  placement?: 'top' | 'bottom';
 }) {
   const [open, setOpen] = React.useState(false);
   const [active, setActive] = React.useState(-1);
@@ -127,14 +128,14 @@ export function Select({ value, options, onChange, ariaLabel, size = 'md', class
       <span className={`truncate ${current ? '' : 'text-muted-foreground'}`}>{current?.label ?? placeholder ?? ''}</span>
       <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
     </button>
-    {open && <div role="listbox" aria-label={ariaLabel} className="absolute z-50 mt-1 max-h-64 w-full min-w-max overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg">
-      {options.map((option, index) => <div key={option.value} role="option" aria-selected={option.value === value}
+    {open && <div role="listbox" aria-label={ariaLabel} className={`absolute z-50 max-h-64 w-full min-w-max overflow-y-auto rounded-lg border bg-popover p-1 text-popover-foreground shadow-lg ${placement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+      {options.map((option, index) => <button type="button" key={option.value} role="option" aria-selected={option.value === value}
         onMouseEnter={() => setActive(index)}
-        onMouseDown={event => { event.preventDefault(); if (!option.disabled) commit(option.value); }}
-        className={`flex cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2 text-sm ${option.disabled ? 'cursor-not-allowed opacity-50' : index === active ? 'bg-accent text-accent-foreground' : ''}`}>
+        onClick={() => { if (!option.disabled) commit(option.value); }}
+        className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm ${option.disabled ? 'cursor-not-allowed opacity-50' : index === active ? 'bg-accent text-accent-foreground' : ''}`}>
         <span className="truncate">{option.label}</span>
         {option.value === value && <Check className="h-4 w-4 shrink-0 text-brand-600" />}
-      </div>)}
+      </button>)}
     </div>}
   </div>;
 }

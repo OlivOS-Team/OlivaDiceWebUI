@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from OlivaDiceWebUI import bridge, deck_management, gui_parity, main, service  # noqa: E402
+from OlivaDiceWebUI import bridge, chance_custom, deck_management, gui_parity, main, service  # noqa: E402
 from OlivaDiceWebUIStandalone import main as standalone_main  # noqa: E402
 from OlivaDiceWebUIStandalone import server as standalone_server  # noqa: E402
 
@@ -26,6 +26,11 @@ class FakeProc:
 
     def get_plugin_list(self):
         return ['OlivaDiceCore', 'OlivaDiceMaster']
+
+
+class ChanceProc(FakeProc):
+    def get_plugin_list(self):
+        return super().get_plugin_list() + ['ChanceCustom']
 
 
 class WebUITest(unittest.TestCase):
@@ -101,6 +106,141 @@ class WebUITest(unittest.TestCase):
         result = service.replies(FakeProc(), 'bot-1')
         self.assertEqual(len(result), 1001)
         self.assertEqual(result[-1]['key'], 'strCustom1000')
+
+    def _install_fake_chance_custom(self):
+        saved = []
+        module = types.ModuleType('ChanceCustom')
+        module.main = types.SimpleNamespace(version='0.2.21')
+        module.load = types.SimpleNamespace(
+            dictCustomData={
+                'dataVersion': 2,
+                'data': {
+                    'unity': {'hello': {'key': 'hello', 'division': '1', 'matchType': 'full',
+                                        'matchPlace': '3', 'priority': 10, 'value': 'world'}},
+                    'bot-1': {},
+                },
+                'defaultVar': {
+                    'unity': {'一天上限': '日上限', '一周上限': '周上限', '一月上限': '月上限',
+                              '一次间隔': '一次冷却', '回复间隔': '回复冷却', '权限限制': '无权限'},
+                    'bot-1': {'一天上限': '', '一周上限': '', '一月上限': '',
+                              '一次间隔': '', '回复间隔': '', '权限限制': ''},
+                },
+                'ccpkList': {'unity': {}, 'bot-1': {}},
+            },
+            saveCustomData=lambda: saved.append(True),
+        )
+        previous = sys.modules.get('ChanceCustom')
+        sys.modules['ChanceCustom'] = module
+        def restore():
+            if previous is None:
+                sys.modules.pop('ChanceCustom', None)
+            else:
+                sys.modules['ChanceCustom'] = previous
+        self.addCleanup(restore)
+        return module, saved
+
+    def test_chance_custom_rule_defaults_and_revision_guard(self):
+        module, saved = self._install_fake_chance_custom()
+        proc = ChanceProc()
+        initial = chance_custom.snapshot(proc, 'bot-1')
+        self.assertTrue(initial['available'])
+        self.assertTrue(initial['defaults'][0]['inherited'])
+        self.assertEqual(initial['defaults'][0]['effective'], '日上限')
+        rule = {'key': 'dice', 'division': '123*456', 'matchType': 'perfix',
+                'matchPlace': '1', 'priority': 7, 'value': 'result'}
+        chance_custom.change_rule(proc, 'bot-1', 'create', rule, revision=initial['revision'])
+        self.assertEqual(module.load.dictCustomData['data']['bot-1']['dice']['matchType'], 'perfix')
+        after_rule = chance_custom.snapshot(proc, 'bot-1')
+        defaults = {item['key']: '账号-' + item['key'] for item in after_rule['defaults']}
+        chance_custom.set_defaults(proc, 'bot-1', defaults, after_rule['revision'])
+        self.assertEqual(chance_custom.snapshot(proc, 'bot-1')['defaults'][0]['value'], '账号-一天上限')
+        with self.assertRaisesRegex(service.InvalidInput, '其他窗口'):
+            chance_custom.change_rule(proc, 'bot-1', 'delete', original_key='dice',
+                                      revision=initial['revision'])
+        with self.assertRaisesRegex(service.InvalidInput, '正则'):
+            chance_custom.change_rule(proc, 'bot-1', 'create',
+                                      {**rule, 'key': '(', 'matchType': 'reg'},
+                                      revision=chance_custom.snapshot(proc, 'bot-1')['revision'])
+        self.assertEqual(len(saved), 2)
+
+    def test_chance_custom_ccpk_round_trip_and_safe_uninstall(self):
+        module, _saved = self._install_fake_chance_custom()
+        proc = ChanceProc()
+        package = {
+            'type': 'ccpk', 'dataVersion': 2,
+            'info': {'name': '示例包', 'author': '作者', 'version': '1', 'info': '说明'},
+            'data': {'packed': {'key': 'packed', 'division': '1', 'matchType': 'contain',
+                                'matchPlace': '3', 'priority': 0, 'value': '原值'}},
+        }
+        stream = io.BytesIO()
+        with zipfile.ZipFile(stream, 'w', zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr('data.json', json.dumps(package, ensure_ascii=False))
+        initial = chance_custom.snapshot(proc, 'unity')
+        chance_custom.import_package(proc, 'unity', 'sample.ccpk', stream.getvalue(), initial['revision'])
+        installed = chance_custom.snapshot(proc, 'unity')
+        self.assertEqual(installed['packages'][0]['ruleCount'], 1)
+        raw, filename = chance_custom.export_package(proc, 'unity', {
+            'info': {'name': '导出包', 'author': '', 'version': '1', 'info': ''},
+            'keys': ['hello', 'packed'],
+        })
+        self.assertEqual(filename, '导出包.ccpk')
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            exported = json.loads(archive.read('data.json'))
+        self.assertEqual(set(exported['data']), {'hello', 'packed'})
+        module.load.dictCustomData['data']['unity']['packed']['value'] = '用户改值'
+        changed = chance_custom.snapshot(proc, 'unity')
+        result = chance_custom.manage_package(proc, 'unity', 'uninstall', '示例包', changed['revision'])
+        self.assertEqual(result['retained'], ['packed'])
+        self.assertEqual(module.load.dictCustomData['data']['unity']['packed']['value'], '用户改值')
+
+    def test_chance_custom_rejects_unsafe_or_unsupported_packages(self):
+        self._install_fake_chance_custom()
+        proc = ChanceProc()
+        for entries in ((('../data.json', '{}'),), (('data.json', '{}'), ('extra.txt', 'x'))):
+            stream = io.BytesIO()
+            with zipfile.ZipFile(stream, 'w') as archive:
+                for name, value in entries:
+                    archive.writestr(name, value)
+            with self.assertRaises(service.InvalidInput):
+                chance_custom.import_package(proc, 'unity', 'bad.ccpk', stream.getvalue())
+
+    def test_chance_custom_official_bridge_routes_and_file_transfers(self):
+        self._install_fake_chance_custom()
+        proc = ChanceProc()
+        initial = bridge.request(proc, {'method': 'GET', 'path': '/api/chance-custom?bot=unity'})
+        self.assertEqual(initial['rules'][0]['key'], 'hello')
+        bridge.request(proc, {'method': 'POST', 'path': '/api/chance-custom/rules', 'data': {
+            'bot': 'unity', 'revision': initial['revision'], 'action': 'create',
+            'rule': {'key': 'bridge', 'division': '1', 'matchType': 'full',
+                     'matchPlace': '3', 'priority': 1, 'value': 'ok'},
+        }})
+        package = {
+            'type': 'ccpk', 'dataVersion': 2,
+            'info': {'name': '桥接包', 'author': '', 'version': '1', 'info': ''},
+            'data': {'upload': {'key': 'upload', 'division': '1', 'matchType': 'full',
+                                'matchPlace': '3', 'priority': 0, 'value': 'ok'}},
+        }
+        raw = io.BytesIO()
+        with zipfile.ZipFile(raw, 'w') as archive:
+            archive.writestr('data.json', json.dumps(package, ensure_ascii=False))
+        context = {'session': 'chance-transfer'}
+        latest = chance_custom.snapshot(proc, 'unity')
+        started = bridge.upload_start({
+            'path': '/api/chance-custom/packages/upload?bot=unity&revision={}'.format(latest['revision']),
+            'name': 'bridge.ccpk', 'size': len(raw.getvalue()),
+        }, context)
+        bridge.upload_chunk({'transferId': started['transferId'], 'offset': 0,
+                             'data': base64.b64encode(raw.getvalue()).decode()}, context)
+        bridge.upload_finish(proc, {'transferId': started['transferId']}, context)
+        exported = bridge.download_start(proc, {
+            'path': '/api/chance-custom/packages/export?bot=unity',
+            'data': {'info': {'name': '桥接导出', 'author': '', 'version': '1', 'info': ''},
+                     'keys': ['hello', 'bridge', 'upload']},
+        }, context)
+        self.assertGreater(exported['size'], 0)
+        chunk = bridge.download_chunk({'transferId': exported['transferId'], 'offset': 0}, context)
+        with zipfile.ZipFile(io.BytesIO(base64.b64decode(chunk['data']))) as archive:
+            self.assertEqual(len(json.loads(archive.read('data.json'))['data']), 3)
 
     def test_extended_service_routes_to_core_and_validates(self):
         proc = FakeProc()

@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from . import deck_management, gui_parity, service
+from . import chance_custom, deck_management, gui_parity, service
 
 
 APP_FILE = Path(__file__).with_name('app.json')
@@ -102,6 +102,8 @@ def _get(proc, path, query):
         return {'path': deck_management.deck_folder(proc, bot_hash)}
     if path == '/api/deck-market':
         return deck_management.market(proc, query.get('refresh', ['0'])[0] == '1')
+    if path == '/api/chance-custom':
+        return chance_custom.snapshot(proc, bot_hash)
     raise service.InvalidInput('接口不存在')
 
 
@@ -141,6 +143,16 @@ def _post(proc, path, data):
         result = deck_management.remove_file(proc, bot_hash, data.get('kind'), data.get('name'))
     elif path == '/api/deck-market/install':
         result = deck_management.market_install(proc, bot_hash, data.get('kind'), data.get('name'))
+    elif path == '/api/chance-custom/rules':
+        result = chance_custom.change_rule(
+            proc, bot_hash, data.get('action'), data.get('rule'), data.get('originalKey'),
+            data.get('revision', ''))
+    elif path == '/api/chance-custom/defaults':
+        result = chance_custom.set_defaults(
+            proc, bot_hash, data.get('values'), data.get('revision', ''))
+    elif path == '/api/chance-custom/packages/manage':
+        result = chance_custom.manage_package(
+            proc, bot_hash, data.get('action'), data.get('name'), data.get('revision', ''))
     else:
         raise service.InvalidInput('接口不存在')
     return {'value': result}
@@ -195,7 +207,8 @@ def upload_start(payload, context):
     if not isinstance(name, str) or not name or len(name) > 255:
         raise service.InvalidInput('文件名无效')
     limits = {'/api/account/import': 100 * 1024 * 1024,
-              '/api/deck-files/upload': 12 * 1024 * 1024}
+              '/api/deck-files/upload': 12 * 1024 * 1024,
+              '/api/chance-custom/packages/upload': 8 * 1024 * 1024}
     if parsed.path not in limits:
         raise service.InvalidInput('文件接口不存在')
     if size > limits[parsed.path]:
@@ -266,9 +279,12 @@ def upload_finish(proc, payload, context):
     bot_hash = query.get('bot', [''])[0]
     if state['path'] == '/api/account/import':
         result = gui_parity.account_import(proc, bot_hash, query.get('source', [''])[0], raw)
-    else:
+    elif state['path'] == '/api/deck-files/upload':
         result = deck_management.install_file(proc, bot_hash, query.get('kind', [''])[0],
                                               query.get('name', [''])[0], raw)
+    else:
+        result = chance_custom.import_package(
+            proc, bot_hash, state['name'], raw, query.get('revision', [''])[0])
     return {'value': result}
 
 
@@ -276,13 +292,19 @@ def download_start(proc, payload, context):
     if not isinstance(payload, dict):
         raise service.InvalidInput('文件传输参数无效')
     parsed, query = _path(payload.get('path'))
-    if parsed.path != '/api/account/export':
+    if parsed.path not in ('/api/account/export', '/api/chance-custom/packages/export'):
         raise service.InvalidInput('文件接口不存在')
     bot_hash = query.get('bot', [''])[0]
-    raw = gui_parity.account_export(proc, bot_hash)
-    if not isinstance(raw, bytes) or len(raw) > 100 * 1024 * 1024:
+    if parsed.path == '/api/account/export':
+        raw = gui_parity.account_export(proc, bot_hash)
+        filename = state_filename('account_export_{}.zip'.format(bot_hash))
+        maximum = 100 * 1024 * 1024
+    else:
+        raw, filename = chance_custom.export_package(proc, bot_hash, payload.get('data'))
+        filename = state_filename(filename)
+        maximum = 8 * 1024 * 1024
+    if not isinstance(raw, bytes) or len(raw) > maximum:
         raise service.InvalidInput('导出文件无效或过大')
-    filename = state_filename('account_export_{}.zip'.format(bot_hash))
     transfer_id = _new_transfer(_session(context), {
         'mode': 'download', 'data': raw,
         'name': filename,

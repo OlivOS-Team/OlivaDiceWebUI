@@ -1,5 +1,6 @@
 """Run a disposable WebUI demo without OlivOS or real bot data."""
 
+import os
 import sys
 import tempfile
 import types
@@ -18,7 +19,7 @@ class DemoProc:
     }}
 
     def get_plugin_list(self):
-        return ['OlivaDiceCore', 'OlivaDiceMaster', 'OlivaDiceWebUIStandalone']
+        return ['OlivaDiceCore', 'OlivaDiceMaster', 'ChanceCustom', 'OlivaDiceWebUIStandalone']
 
 
 core = types.ModuleType('OlivaDiceCore')
@@ -129,9 +130,48 @@ master.accountManager.importAccountData = demo_copy
 master.accountManager.importAccountDataFromZip = demo_import
 sys.modules['OlivaDiceMaster'] = master
 
+chance = types.ModuleType('ChanceCustom')
+chance.main = types.SimpleNamespace(version='0.2.21')
+chance_rules = {
+    '欢迎': {'key': '欢迎', 'division': '1', 'matchType': 'full', 'matchPlace': '3',
+             'priority': 100, 'value': '欢迎使用程心自定义。'},
+    '天气': {'key': '天气', 'division': '10001*10002', 'matchType': 'contain', 'matchPlace': '1',
+             'priority': 20, 'value': '今天是晴天。'},
+}
+chance_rules.update({
+    '演示规则{:03d}'.format(index): {
+        'key': '演示规则{:03d}'.format(index), 'division': '1',
+        'matchType': 'perfix' if index % 2 else 'full', 'matchPlace': '3',
+        'priority': index, 'value': '这是第 {} 条分页演示回复。'.format(index),
+    }
+    for index in range(1, 206)
+})
+chance_defaults = {'一天上限': '本日已达上限', '一周上限': '本周已达上限',
+                   '一月上限': '本月已达上限', '一次间隔': '冷却中，还需等待【间隔】分钟',
+                   '回复间隔': '', '权限限制': '权限不足'}
+chance_package = {
+    'type': 'ccpk', 'dataVersion': 2,
+    'info': {'name': '演示回复包', 'author': 'OlivOS', 'version': '1.0',
+             'info': '用于检查回复包管理布局。'},
+    'data': {'欢迎': chance_rules['欢迎']},
+}
+chance.load = types.SimpleNamespace(
+    dictCustomData={
+        'dataVersion': 2,
+        'data': {'unity': chance_rules, 'demo-qq': {}, 'demo-discord': {}},
+        'defaultVar': {'unity': chance_defaults,
+                       'demo-qq': {key: '' for key in chance_defaults},
+                       'demo-discord': {key: '' for key in chance_defaults}},
+        'ccpkList': {'unity': {'演示回复包': chance_package}, 'demo-qq': {}, 'demo-discord': {}},
+    },
+    saveCustomData=lambda: None,
+)
+sys.modules['ChanceCustom'] = chance
+
 if __name__ == '__main__':
-    httpd = HTTPServer(('127.0.0.1', PORT), handler_factory(DemoProc(), 'oliva-demo-2026'))
-    print('OlivaDice WebUI demo: http://127.0.0.1:{}/'.format(PORT), flush=True)
+    demo_port = int(os.environ.get('OLIVADICE_DEMO_PORT', str(PORT)))
+    httpd = HTTPServer(('127.0.0.1', demo_port), handler_factory(DemoProc(), 'oliva-demo-2026'))
+    print('OlivaDice WebUI demo: http://127.0.0.1:{}/'.format(demo_port), flush=True)
     print('Demo token: oliva-demo-2026', flush=True)
     try:
         httpd.serve_forever()

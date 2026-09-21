@@ -5,6 +5,10 @@ export type HelpDoc = { key: string; value: string; custom: boolean };
 export type Deck = { name: string; groups: string[]; count: number };
 export type Master = { id: string; platform: string };
 export type BackupState = { available: boolean; settings: { isBackup: number | null; startDate: string | null; passDay: number | null; backupTime: string | null; maxBackupCount: number | null } };
+export type ChanceRule = { key: string; division: string; matchType: 'full' | 'contain' | 'perfix' | 'reg'; matchPlace: '1' | '2' | '3'; priority: number; value: string };
+export type ChanceDefault = { key: string; label: string; value: string; effective: string; inherited: boolean };
+export type ChancePackage = { name: string; author: string; version: string; description: string; ruleCount: number };
+export type ChanceCustomState = { available: boolean; writable?: boolean; version: string; dataVersion: number | null; revision: string; rules: ChanceRule[]; defaults: ChanceDefault[]; packages: ChancePackage[]; reason: string };
 
 export const standalone = import.meta.env.VITE_WEBUI_MODE === 'standalone';
 
@@ -112,9 +116,13 @@ async function cancelTransfer(transferId: string): Promise<void> {
   try { await bridge(events.cancel, { transferId }, 5_000); } catch { /* Transfer may already be gone. */ }
 }
 
-export async function downloadFile(path: string, token: string, filename: string): Promise<void> {
+export async function downloadFile(path: string, token: string, filename: string, data?: unknown): Promise<void> {
   if (standalone) {
-    const response = await fetch(path, { headers: { Authorization: `Bearer ${token}` } });
+    const response = await fetch(path, {
+      method: data === undefined ? 'GET' : 'POST',
+      headers: { Authorization: `Bearer ${token}`, ...(data === undefined ? {} : { 'Content-Type': 'application/json' }) },
+      ...(data === undefined ? {} : { body: JSON.stringify(data) }),
+    });
     if (!response.ok) {
       const result = await response.json();
       throw new Error(String(result.error || `HTTP ${response.status}`));
@@ -125,7 +133,7 @@ export async function downloadFile(path: string, token: string, filename: string
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     return;
   }
-  const start = await bridge<{ transferId: string; size: number; chunkBytes: number }>(events.downloadStart, { path }, 120_000);
+  const start = await bridge<{ transferId: string; size: number; chunkBytes: number }>(events.downloadStart, { path, ...(data === undefined ? {} : { data }) }, 120_000);
   const bytes = new Uint8Array(start.size);
   let offset = 0;
   try {
