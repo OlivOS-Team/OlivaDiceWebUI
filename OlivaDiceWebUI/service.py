@@ -133,12 +133,23 @@ def replies(proc, bot_hash):
     with LOCK:
         core = _core()
         values = core.msgCustom.dictStrCustomDict.get(bot_hash, {})
-        updates = core.msgCustom.dictStrCustomUpdateDict.get(bot_hash, {})
         from . import gui_parity
         defaults = gui_parity._reply_defaults(proc, bot_hash)
-        return [{'key': key, 'value': value, 'note': REPLY_NOTES.get(key, ''), 'modified': key in updates,
-                 'default': defaults.get(key) if isinstance(defaults.get(key), str) else None}
-                for key, value in values.items() if isinstance(key, str) and isinstance(value, str)]
+        result = []
+        for key, value in values.items():
+            if not isinstance(key, str) or not isinstance(value, str):
+                continue
+            default = defaults.get(key)
+            if isinstance(default, str):
+                # Compare against the default text instead of the overwrite ledger:
+                # the ledger keeps stale entries (values restored to default, plugin-side
+                # edits) and misses drift when a release changes the default text.
+                modified = value != default
+            else:
+                modified = True
+            result.append({'key': key, 'value': value, 'note': REPLY_NOTES.get(key, ''),
+                           'modified': modified, 'default': default if isinstance(default, str) else None})
+        return result
 
 
 def set_reply(proc, bot_hash, key, value=None, reset=False):
@@ -164,7 +175,14 @@ def set_reply(proc, bot_hash, key, value=None, reset=False):
             changes.pop(key, None)
         else:
             current[key] = value
-            changes[key] = value
+            from . import gui_parity
+            default = gui_parity._reply_defaults(proc, bot_hash).get(key)
+            if isinstance(default, str) and value == default:
+                # Saving the default text leaves the overwrite layer, exactly like an
+                # explicit reset, so customReply.json only stores real deviations.
+                changes.pop(key, None)
+            else:
+                changes[key] = value
         try:
             core.msgCustomManager.saveMsgCustomByBotHash(bot_hash)
         except Exception:
@@ -208,12 +226,14 @@ def relations(proc):
             return {'available': False, 'accountHashes': [], 'relations': []}
         console = _core().console
         current = console.getAllAccountRelations()
-        known = set(_bots(proc)) | set(console.dictConsoleSwitch)
+        bots = _bots(proc)
+        known = set(bots) | set(console.dictConsoleSwitch)
         known.update(master for master in current if isinstance(master, str))
         known.update(slave for slaves in current.values() if isinstance(slaves, list)
                      for slave in slaves if isinstance(slave, str))
         return {'available': True, 'accountHashes': sorted(known - {'unity'}), 'relations': [
-            {'master': master, 'slave': slave}
+            {'master': master, 'slave': slave,
+             'masterOnline': master in bots, 'slaveOnline': slave in bots}
             for master, slaves in current.items() if isinstance(slaves, list)
             for slave in slaves
             if isinstance(master, str) and isinstance(slave, str)

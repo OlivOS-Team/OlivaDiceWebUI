@@ -77,7 +77,7 @@ export function RepliesPage({ token, bot, notify, onDirtyChange }: Props) {
     if (creating) { if (!newKey.trim()) { notify('请输入回复键', true); return; } try { const key = newKey.trim(); const updated = await manage('add', undefined, key, draft); setQuery(''); setStatusFilter('all'); setPage(Math.floor(Math.max(0, (updated || items).findIndex(item => item.key === key)) / PAGE_SIZE) + 1); setCreating(false); setSelected(key); } catch { /* shown by manage */ } return; }
     if (!active) return;
     setBusy(true);
-    try { const result = await api<{ value: string }>('/api/replies', token, { bot, key: active.key, value: draft }); setItems(current => current.map(item => item.key === active.key ? { ...item, value: result.value, modified: true } : item)); setDraft(result.value); notify('回复已保存'); }
+    try { const result = await api<{ value: string }>('/api/replies', token, { bot, key: active.key, value: draft }); setItems(current => current.map(item => item.key === active.key ? { ...item, value: result.value, modified: active.default === null ? true : result.value !== active.default } : item)); setDraft(result.value); notify('回复已保存'); }
     catch (cause) { notify((cause as Error).message, true); }
     finally { setBusy(false); }
   };

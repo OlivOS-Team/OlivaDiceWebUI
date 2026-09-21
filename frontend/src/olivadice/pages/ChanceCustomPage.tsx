@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, Link2Off, Package, Plus, RotateCcw, Save, Trash2, Upload } from 'lucide-react';
+import { BookOpen, Download, Link2Off, Package, Plus, RotateCcw, Save, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -48,7 +48,10 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
   React.useEffect(() => { setSelected(''); setCreating(false); setPage(1); setQuery(''); void load(); }, [load]);
   const active = state?.rules.find(item => item.key === selected);
   React.useEffect(() => { if (!creating) setDraft(active ? { ...active } : emptyRule()); }, [active?.key, active?.division, active?.matchType, active?.matchPlace, active?.priority, active?.value, creating]);
-  const ruleDirty = creating ? Object.values(draft).some(value => value !== '' && value !== 0 && value !== '1' && value !== '3' && value !== 'full') : Boolean(active && JSON.stringify(active) !== JSON.stringify(draft));
+  // Compare whole objects instead of individual values: a value-based check such as
+  // "value !== '1'" misfires when a keyword or reply legitimately IS '1' (or '3'/'full'/0),
+  // which left the save button disabled for short rule keys like 「1」.
+  const ruleDirty = creating ? JSON.stringify(draft) !== JSON.stringify(emptyRule()) : Boolean(active && JSON.stringify(active) !== JSON.stringify(draft));
   const defaultsDirty = Boolean(state && state.defaults.some(item => (defaultDraft[item.key] ?? '') !== item.value));
   React.useEffect(() => { onDirtyChange(ruleDirty || defaultsDirty); return () => onDirtyChange(false); }, [ruleDirty, defaultsDirty, onDirtyChange]);
 
@@ -75,7 +78,6 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
   };
   const saveRule = async () => {
     if (!draft.key.trim()) { notify('请输入关键词', true); return; }
-    if (creating && draft.value.length < 2) { notify('新增规则的回复内容至少需要 2 个字符', true); return; }
     if (!Number.isInteger(draft.priority)) { notify('优先级必须是整数', true); return; }
     const key = draft.key.trim();
     await mutate('/api/chance-custom/rules', { action: creating ? 'create' : 'update', originalKey: active?.key, rule: { ...draft, key } }, creating ? '回复规则已添加' : '回复规则已保存');
@@ -116,9 +118,16 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
     finally { setBusy(false); }
   };
 
+  // Same entry as the desktop ChanceCustom GUI: 「程心使用教学」 opens the official tutorial.
+  const tutorialLink = (
+    <Button asChild size="sm" variant="outline">
+      <a href="https://forum.olivos.run/p/1" target="_blank" rel="noreferrer noopener"><BookOpen className="mr-2 h-4 w-4" />程心使用教学</a>
+    </Button>
+  );
+
   if (loading && !state) return <Busy />;
-  if (!state?.available) return <><SectionTitle eyebrow="CHANCE CUSTOM" title="程心自定义" description="远程管理 ChanceCustom 的回复规则、默认回复和 CCPK。" /><Empty title="ChanceCustom 未加载" detail={state?.reason || '请安装并启用 ChanceCustom，然后重启 OlivOS。'} /></>;
-  if (!state.writable) return <><SectionTitle eyebrow="CHANCE CUSTOM" title="程心自定义" description={`已检测到 ChanceCustom ${state.version || ''}`} /><Empty title="当前配置只能读取" detail={state.reason} /></>;
+  if (!state?.available) return <><SectionTitle eyebrow="CHANCE CUSTOM" title="程心自定义" description="远程管理 ChanceCustom 的回复规则、默认回复和 CCPK。" action={tutorialLink} /><Empty title="ChanceCustom 未加载" detail={state?.reason || '请安装并启用 ChanceCustom，然后重启 OlivOS。'} /></>;
+  if (!state.writable) return <><SectionTitle eyebrow="CHANCE CUSTOM" title="程心自定义" description={`已检测到 ChanceCustom ${state.version || ''}`} action={tutorialLink} /><Empty title="当前配置只能读取" detail={state.reason} /></>;
 
   const filtered = state.rules.filter(item => `${item.key} ${item.value} ${item.division}`.toLowerCase().includes(query.toLowerCase()));
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -128,7 +137,7 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
   const packageRuleMatches = state.rules.filter(item => `${item.key} ${item.value}`.toLowerCase().includes(packageQuery.toLowerCase()));
   const toggleExport = (key: string) => setExportKeys(current => current.includes(key) ? current.filter(item => item !== key) : [...current, key]);
 
-  return <><SectionTitle eyebrow="CHANCE CUSTOM" title="程心自定义" description={`ChanceCustom ${state.version || '未知版本'} · 数据版本 ${state.dataVersion} · 当前范围 ${bot === 'unity' ? '全局' : '账号'}`} action={<Button size="sm" variant="outline" onClick={() => void refresh()} disabled={busy}><RotateCcw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />重新读取</Button>} />
+  return <><SectionTitle eyebrow="CHANCE CUSTOM" title="程心自定义" description={`ChanceCustom ${state.version || '未知版本'} · 数据版本 ${state.dataVersion} · 当前范围 ${bot === 'unity' ? '全局' : '账号'}`} action={<div className="flex flex-wrap gap-2">{tutorialLink}<Button size="sm" variant="outline" onClick={() => void refresh()} disabled={busy}><RotateCcw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />重新读取</Button></div>} />
     <div className="mb-5 flex flex-wrap gap-2 border-b pb-3">{([['rules', `回复规则 ${state.rules.length}`], ['packages', `回复包 ${state.packages.length}`], ['defaults', '默认回复']] as const).map(([id, label]) => <button key={id} onClick={() => void changeTab(id)} className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === id ? 'bg-brand-50 text-brand-700' : 'text-muted-foreground hover:bg-muted'}`}>{label}</button>)}</div>
 
     {tab === 'rules' && <><div className="mb-4 flex justify-end"><Button size="sm" onClick={() => void create()} disabled={busy}><Plus className="mr-2 h-4 w-4" />新增规则</Button></div><div className="grid min-h-[620px] gap-4 lg:grid-cols-[340px_minmax(0,1fr)]"><Card className="flex min-h-0 flex-col overflow-hidden border-slate-200 shadow-sm"><div className="space-y-3 border-b p-4"><SearchField value={query} onChange={value => { setQuery(value); setPage(1); }} placeholder="搜索关键词、回复或分群" /><div className="text-xs text-muted-foreground">{filtered.length} / {state.rules.length} 条规则</div></div><div ref={listRef} className="max-h-[650px] flex-1 overflow-y-auto p-2">{pageItems.length ? pageItems.map(item => <button key={item.key} onClick={() => void choose(item.key)} className={`mb-1 w-full rounded-lg px-3 py-3 text-left ${selected === item.key && !creating ? 'bg-brand-50 text-brand-800 ring-1 ring-brand-200' : 'hover:bg-muted'}`}><div className="flex items-center gap-2"><span className="min-w-0 flex-1 truncate text-sm font-medium">{item.key}</span><span className="text-[10px] text-muted-foreground">P{item.priority}</span></div><p className="mt-1 truncate text-xs text-muted-foreground">{matchTypeLabels[item.matchType]} · {matchPlaceLabels[item.matchPlace]} · {item.value || '空回复'}</p></button>) : <Empty title="没有匹配的规则" />}</div><div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2 text-xs text-muted-foreground"><span>{filtered.length ? `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filtered.length)}` : '0'} / {filtered.length}</span><div className="flex items-center gap-2"><Button size="sm" variant="outline" disabled={currentPage <= 1} onClick={() => void goToPage(currentPage - 1)}>上一页</Button><Select ariaLabel="程心规则页码" size="sm" className="w-24" placement="top" value={String(currentPage)} onChange={value => void goToPage(Number(value))} options={Array.from({ length: pageCount }, (_, index) => ({ value: String(index + 1), label: `${index + 1} / ${pageCount}` }))} /><Button size="sm" variant="outline" disabled={currentPage >= pageCount} onClick={() => void goToPage(currentPage + 1)}>下一页</Button></div></div></Card>
