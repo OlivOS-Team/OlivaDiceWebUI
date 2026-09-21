@@ -3,7 +3,7 @@
   "author": "希亚(ShiaNyaa)",
   "namespace": "OlivaDiceWebUIStandalone",
   "info": "自行监听 HTTP 端口的青果骰独立管理页面",
-  "version": "20260920(1)",
+  "version": "20260921",
   "priority": 20060,
   "compatible_svn": 190,
   "message_mode": "old_string",
