@@ -47,6 +47,8 @@
 
 官方接入版的远程访问、端口和认证均由 OlivOS WebUI 统一配置；它运行在无同源权限的插件沙箱中，不能读取父页面 DOM、存储或令牌，也不直接使用 `fetch`、XHR 或 WebSocket。独立服务版则只使用自己的监听设置和管理令牌，不依赖 OlivOS WebUI。
 
+官方接入版依赖 OlivOS WebUI 插件 iframe 和 CSP 同时开放 `allow-downloads`，才能在浏览器直接导出 JSON、账号 ZIP 和 CCPK。请使用已包含该权限的 OlivOS 测试版。
+
 ## 接入实现
 
 官方版通过 `app.json.webui_config` 注册 `webui/olivadice.html`，使用 `window.parent.postMessage` 和 `plugin_event.send('webui', ...)` 通信。独立版通过同源 HTTP API 和 Bearer 令牌通信，并额外提供服务设置页面。账号、配置、回复词、帮助、牌堆、备份等代码全部共用。

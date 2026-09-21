@@ -75,6 +75,7 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
   };
   const saveRule = async () => {
     if (!draft.key.trim()) { notify('请输入关键词', true); return; }
+    if (creating && draft.value.length < 2) { notify('新增规则的回复内容至少需要 2 个字符', true); return; }
     if (!Number.isInteger(draft.priority)) { notify('优先级必须是整数', true); return; }
     const key = draft.key.trim();
     await mutate('/api/chance-custom/rules', { action: creating ? 'create' : 'update', originalKey: active?.key, rule: { ...draft, key } }, creating ? '回复规则已添加' : '回复规则已保存');
@@ -110,7 +111,7 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
       const filename = `${exportInfo.name.trim().replace(/[\\/:*?"<>|]/g, '_')}.ccpk`;
       await downloadFile(`/api/chance-custom/packages/export${botQuery(bot)}`, token, filename,
         { bot, info: { ...exportInfo, name: exportInfo.name.trim() }, keys: exportKeys });
-      notify(`已导出 ${exportKeys.length} 条规则`);
+      notify(`已下载 ${exportKeys.length} 条规则`);
     } catch (cause) { notify((cause as Error).message, true); }
     finally { setBusy(false); }
   };

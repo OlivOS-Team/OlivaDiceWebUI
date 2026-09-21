@@ -205,33 +205,44 @@ def change_master(proc, bot_hash, action, master_id):
 def relations(proc):
     with LOCK:
         if not _master_installed(proc):
-            return {'available': False, 'relations': []}
+            return {'available': False, 'accountHashes': [], 'relations': []}
         console = _core().console
         current = console.getAllAccountRelations()
-        bots = _bots(proc)
-        return {'available': True, 'relations': [
+        known = set(_bots(proc)) | set(console.dictConsoleSwitch)
+        known.update(master for master in current if isinstance(master, str))
+        known.update(slave for slaves in current.values() if isinstance(slaves, list)
+                     for slave in slaves if isinstance(slave, str))
+        return {'available': True, 'accountHashes': sorted(known - {'unity'}), 'relations': [
             {'master': master, 'slave': slave}
-            for master, slaves in current.items() if master in bots and isinstance(slaves, list)
-            for slave in slaves if slave in bots
+            for master, slaves in current.items() if isinstance(slaves, list)
+            for slave in slaves
+            if isinstance(master, str) and isinstance(slave, str)
         ]}
 
 
 def change_relation(proc, action, slave, master=None):
-    _check_account(proc, slave, False)
     if action not in ('link', 'unlink'):
         raise InvalidInput('账号关系操作无效')
-    if action == 'link':
-        _check_account(proc, master, False)
-        if master == slave:
-            raise InvalidInput('主从账号不能相同')
     if not _master_installed(proc):
         raise InvalidInput('需要 OlivaDiceMaster 才能管理账号关系')
     with LOCK:
+        if action == 'link':
+            known = set(relations(proc)['accountHashes'])
+            if (not isinstance(slave, str) or not isinstance(master, str)
+                    or slave not in known or master not in known):
+                raise InvalidInput('主账号或从账号不在已保存的账号列表中')
+            if master == slave:
+                raise InvalidInput('主从账号不能相同')
+        if action == 'unlink':
+            if not isinstance(slave, str) or not slave or not any(
+                    isinstance(slaves, list) and slave in slaves
+                    for slaves in _core().console.getAllAccountRelations().values()):
+                raise InvalidInput('账号关系不存在，请刷新后重试')
         import OlivaDiceMaster
         if action == 'link':
-            ok, message = OlivaDiceMaster.accountManager.linkAccount(slave, master, _bots(proc))
+            ok, message = OlivaDiceMaster.accountManager.linkAccount(slave, master, None)
         else:
-            ok, message = OlivaDiceMaster.accountManager.unlinkAccount(slave, None, _bots(proc))
+            ok, message = OlivaDiceMaster.accountManager.unlinkAccount(slave, None, None)
         if not ok:
             raise InvalidInput(message)
         return relations(proc)

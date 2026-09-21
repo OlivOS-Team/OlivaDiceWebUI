@@ -150,6 +150,10 @@ class WebUITest(unittest.TestCase):
                 'matchPlace': '1', 'priority': 7, 'value': 'result'}
         chance_custom.change_rule(proc, 'bot-1', 'create', rule, revision=initial['revision'])
         self.assertEqual(module.load.dictCustomData['data']['bot-1']['dice']['matchType'], 'perfix')
+        with self.assertRaisesRegex(service.InvalidInput, '至少需要 2 个字符'):
+            chance_custom.change_rule(proc, 'bot-1', 'create', {**rule, 'key': 'short', 'value': 'x'})
+        chance_custom.change_rule(proc, 'bot-1', 'update', {**rule, 'value': 'x'}, original_key='dice')
+        self.assertEqual(module.load.dictCustomData['data']['bot-1']['dice']['value'], 'x')
         after_rule = chance_custom.snapshot(proc, 'bot-1')
         defaults = {item['key']: '账号-' + item['key'] for item in after_rule['defaults']}
         chance_custom.set_defaults(proc, 'bot-1', defaults, after_rule['revision'])
@@ -161,7 +165,7 @@ class WebUITest(unittest.TestCase):
             chance_custom.change_rule(proc, 'bot-1', 'create',
                                       {**rule, 'key': '(', 'matchType': 'reg'},
                                       revision=chance_custom.snapshot(proc, 'bot-1')['revision'])
-        self.assertEqual(len(saved), 2)
+        self.assertEqual(len(saved), 3)
 
     def test_chance_custom_ccpk_round_trip_and_safe_uninstall(self):
         module, _saved = self._install_fake_chance_custom()
@@ -244,6 +248,12 @@ class WebUITest(unittest.TestCase):
 
     def test_extended_service_routes_to_core_and_validates(self):
         proc = FakeProc()
+        self.fake.console.getAllAccountRelations = lambda: {'offline-master': ['bot-1', 'offline-slave']}
+        self.assertEqual(service.relations(proc)['relations'], [
+            {'master': 'offline-master', 'slave': 'bot-1'},
+            {'master': 'offline-master', 'slave': 'offline-slave'},
+        ])
+        self.assertIn('offline-slave', service.relations(proc)['accountHashes'])
         self.assertEqual(service.set_reply(proc, 'bot-1', 'strHello', reset=True), '默认回复')
         self.assertNotIn('strHello', self.fake.msgCustom.dictStrCustomUpdateDict['bot-1'])
         self.assertEqual(service.change_master(proc, 'bot-1', 'add', '456')[0]['id'], '456')
@@ -263,6 +273,35 @@ class WebUITest(unittest.TestCase):
             'passDay': 2, 'backupTime': '05:00:00', 'maxBackupCount': 3})['settings']['passDay'], 2)
         with self.assertRaises(service.InvalidInput):
             service.set_backup(proc, {'isBackup': 1})
+
+    def test_offline_accounts_can_link_and_unlink(self):
+        proc = FakeProc()
+        links = {'offline-master': ['offline-slave']}
+        self.fake.console.dictConsoleSwitch['offline-new'] = {}
+        self.fake.console.getAllAccountRelations = lambda: links
+        master = types.ModuleType('OlivaDiceMaster')
+        calls = []
+
+        def link(slave, host, bots):
+            calls.append(('link', slave, host, bots))
+            links.setdefault(host, []).append(slave)
+            return True, 'ok'
+
+        def unlink(slave, host, bots):
+            calls.append(('unlink', slave, host, bots))
+            for slaves in links.values():
+                if slave in slaves:
+                    slaves.remove(slave)
+            return True, 'ok'
+
+        master.accountManager = types.SimpleNamespace(linkAccount=link, unlinkAccount=unlink)
+        with patch.dict(sys.modules, {'OlivaDiceMaster': master}):
+            service.change_relation(proc, 'link', 'offline-new', 'offline-master')
+            service.change_relation(proc, 'unlink', 'offline-slave')
+        self.assertEqual(calls, [
+            ('link', 'offline-new', 'offline-master', None),
+            ('unlink', 'offline-slave', None, None),
+        ])
 
     def test_gui_config_and_reply_batch_operations(self):
         proc = FakeProc()

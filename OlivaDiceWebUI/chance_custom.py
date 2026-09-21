@@ -241,6 +241,8 @@ def change_rule(proc, bot, action, rule=None, original_key=None, revision=''):
     if action not in ('create', 'update', 'delete'):
         raise service.InvalidInput('规则操作无效')
     checked = _validate_rule(rule) if action != 'delete' else None
+    if action == 'create' and len(checked['value']) < 2:
+        raise service.InvalidInput('新增规则的回复内容至少需要 2 个字符')
     if original_key is not None:
         original_key = _text(original_key, '关键词', 500, False)
 
