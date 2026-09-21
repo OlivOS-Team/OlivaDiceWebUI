@@ -113,7 +113,7 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
       const filename = `${exportInfo.name.trim().replace(/[\\/:*?"<>|]/g, '_')}.ccpk`;
       await downloadFile(`/api/chance-custom/packages/export${botQuery(bot)}`, token, filename,
         { bot, info: { ...exportInfo, name: exportInfo.name.trim() }, keys: exportKeys });
-      notify(`已导出 ${exportKeys.length} 条规则`);
+      notify(`已下载 ${exportKeys.length} 条规则`);
     } catch (cause) { notify((cause as Error).message, true); }
     finally { setBusy(false); }
   };
