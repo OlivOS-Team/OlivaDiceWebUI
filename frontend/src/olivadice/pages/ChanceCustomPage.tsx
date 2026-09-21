@@ -48,7 +48,10 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
   React.useEffect(() => { setSelected(''); setCreating(false); setPage(1); setQuery(''); void load(); }, [load]);
   const active = state?.rules.find(item => item.key === selected);
   React.useEffect(() => { if (!creating) setDraft(active ? { ...active } : emptyRule()); }, [active?.key, active?.division, active?.matchType, active?.matchPlace, active?.priority, active?.value, creating]);
-  const ruleDirty = creating ? Object.values(draft).some(value => value !== '' && value !== 0 && value !== '1' && value !== '3' && value !== 'full') : Boolean(active && JSON.stringify(active) !== JSON.stringify(draft));
+  // Compare whole objects instead of individual values: a value-based check such as
+  // "value !== '1'" misfires when a keyword or reply legitimately IS '1' (or '3'/'full'/0),
+  // which left the save button disabled for short rule keys like 「1」.
+  const ruleDirty = creating ? JSON.stringify(draft) !== JSON.stringify(emptyRule()) : Boolean(active && JSON.stringify(active) !== JSON.stringify(draft));
   const defaultsDirty = Boolean(state && state.defaults.some(item => (defaultDraft[item.key] ?? '') !== item.value));
   React.useEffect(() => { onDirtyChange(ruleDirty || defaultsDirty); return () => onDirtyChange(false); }, [ruleDirty, defaultsDirty, onDirtyChange]);
 

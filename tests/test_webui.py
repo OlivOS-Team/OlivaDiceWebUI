@@ -100,6 +100,22 @@ class WebUITest(unittest.TestCase):
         with self.assertRaises(service.InvalidInput):
             service.set_reply(FakeProc(), 'bot-1', 'unknown', 'x')
 
+    def test_reply_modified_compares_default_text(self):
+        # '你好' differs from the default '默认回复' even though the overwrite ledger is empty.
+        hello = next(item for item in service.replies(FakeProc(), 'bot-1') if item['key'] == 'strHello')
+        self.assertTrue(hello['modified'])
+        self.assertEqual(hello['default'], '默认回复')
+        # Saving the default text unmarks the reply and drops the stale ledger entry.
+        service.set_reply(FakeProc(), 'bot-1', 'strHello', '默认回复')
+        hello = next(item for item in service.replies(FakeProc(), 'bot-1') if item['key'] == 'strHello')
+        self.assertFalse(hello['modified'])
+        self.assertNotIn('strHello', self.fake.msgCustom.dictStrCustomUpdateDict['bot-1'])
+        # Custom keys without a default always count as modified.
+        gui_parity.replies_apply(FakeProc(), 'bot-1', 'add', key='strMine', value='自定义')
+        mine = next(item for item in service.replies(FakeProc(), 'bot-1') if item['key'] == 'strMine')
+        self.assertTrue(mine['modified'])
+        self.assertIsNone(mine['default'])
+
     def test_more_than_one_thousand_replies_are_available(self):
         values = {f'strCustom{index:04d}': f'回复 {index}' for index in range(1001)}
         self.fake.msgCustom.dictStrCustomDict['bot-1'] = values
@@ -633,6 +649,40 @@ class WebUITest(unittest.TestCase):
                 downloaded.extend(decoded)
                 offset += len(decoded)
             self.assertEqual(bytes(downloaded), raw)
+        finally:
+            if previous is None:
+                del sys.modules['OlivaDiceMaster']
+            else:
+                sys.modules['OlivaDiceMaster'] = previous
+
+    def test_relations_survive_disabled_accounts(self):
+        relations_state = {'master-offline': ['bot-1', 'slave-offline']}
+        unlink_calls = []
+        module = types.ModuleType('OlivaDiceMaster')
+        module.accountManager = types.SimpleNamespace(
+            linkAccount=lambda *_args: (False, 'unused'),
+            unlinkAccount=lambda slave, master, bots: (
+                unlink_calls.append((slave, master, bots)) or (
+                    (True, 'unlinked') if slave in relations_state or any(slave in slaves for slaves in relations_state.values())
+                    else (False, '账号 {} 未建立主从关系'.format(slave)))),
+        )
+        previous = sys.modules.get('OlivaDiceMaster')
+        sys.modules['OlivaDiceMaster'] = module
+        self.fake.console.getAllAccountRelations = lambda: relations_state
+        try:
+            result = service.relations(FakeProc())
+            self.assertEqual(result['relations'], [
+                {'master': 'master-offline', 'slave': 'bot-1',
+                 'masterOnline': False, 'slaveOnline': True},
+                {'master': 'master-offline', 'slave': 'slave-offline',
+                 'masterOnline': False, 'slaveOnline': False},
+            ])
+            # An offline slave can still be unlinked: no bot list is passed on purpose.
+            changed = service.change_relation(FakeProc(), 'unlink', 'slave-offline')
+            self.assertEqual(unlink_calls, [('slave-offline', None, None)])
+            self.assertEqual(changed['relations'], result['relations'])
+            with self.assertRaises(service.InvalidInput):
+                service.change_relation(FakeProc(), 'unlink', 'ghost')
         finally:
             if previous is None:
                 del sys.modules['OlivaDiceMaster']

@@ -133,12 +133,23 @@ def replies(proc, bot_hash):
     with LOCK:
         core = _core()
         values = core.msgCustom.dictStrCustomDict.get(bot_hash, {})
-        updates = core.msgCustom.dictStrCustomUpdateDict.get(bot_hash, {})
         from . import gui_parity
         defaults = gui_parity._reply_defaults(proc, bot_hash)
-        return [{'key': key, 'value': value, 'note': REPLY_NOTES.get(key, ''), 'modified': key in updates,
-                 'default': defaults.get(key) if isinstance(defaults.get(key), str) else None}
-                for key, value in values.items() if isinstance(key, str) and isinstance(value, str)]
+        result = []
+        for key, value in values.items():
+            if not isinstance(key, str) or not isinstance(value, str):
+                continue
+            default = defaults.get(key)
+            if isinstance(default, str):
+                # Compare against the default text instead of the overwrite ledger:
+                # the ledger keeps stale entries (values restored to default, plugin-side
+                # edits) and misses drift when a release changes the default text.
+                modified = value != default
+            else:
+                modified = True
+            result.append({'key': key, 'value': value, 'note': REPLY_NOTES.get(key, ''),
+                           'modified': modified, 'default': default if isinstance(default, str) else None})
+        return result
 
 
 def set_reply(proc, bot_hash, key, value=None, reset=False):
@@ -164,7 +175,14 @@ def set_reply(proc, bot_hash, key, value=None, reset=False):
             changes.pop(key, None)
         else:
             current[key] = value
-            changes[key] = value
+            from . import gui_parity
+            default = gui_parity._reply_defaults(proc, bot_hash).get(key)
+            if isinstance(default, str) and value == default:
+                # Saving the default text leaves the overwrite layer, exactly like an
+                # explicit reset, so customReply.json only stores real deviations.
+                changes.pop(key, None)
+            else:
+                changes[key] = value
         try:
             core.msgCustomManager.saveMsgCustomByBotHash(bot_hash)
         except Exception:
@@ -209,21 +227,26 @@ def relations(proc):
         console = _core().console
         current = console.getAllAccountRelations()
         bots = _bots(proc)
+        # Keep relations whose endpoints are currently disabled/offline: the native GUI
+        # still lists them (labelled 未知) so they can be inspected, unlinked or relinked.
         return {'available': True, 'relations': [
-            {'master': master, 'slave': slave}
-            for master, slaves in current.items() if master in bots and isinstance(slaves, list)
-            for slave in slaves if slave in bots
+            {'master': master, 'slave': slave,
+             'masterOnline': master in bots, 'slaveOnline': slave in bots}
+            for master, slaves in current.items() if isinstance(slaves, list)
+            for slave in slaves if isinstance(slave, str)
         ]}
 
 
 def change_relation(proc, action, slave, master=None):
-    _check_account(proc, slave, False)
     if action not in ('link', 'unlink'):
         raise InvalidInput('账号关系操作无效')
     if action == 'link':
+        _check_account(proc, slave, False)
         _check_account(proc, master, False)
         if master == slave:
             raise InvalidInput('主从账号不能相同')
+    elif not isinstance(slave, str) or not slave:
+        raise InvalidInput('请选择要断开的从账号')
     if not _master_installed(proc):
         raise InvalidInput('需要 OlivaDiceMaster 才能管理账号关系')
     with LOCK:
@@ -231,7 +254,9 @@ def change_relation(proc, action, slave, master=None):
         if action == 'link':
             ok, message = OlivaDiceMaster.accountManager.linkAccount(slave, master, _bots(proc))
         else:
-            ok, message = OlivaDiceMaster.accountManager.unlinkAccount(slave, None, _bots(proc))
+            # Pass no bot list here on purpose: a disabled account still owns its saved
+            # relation, and unlinking must keep working exactly like the native GUI.
+            ok, message = OlivaDiceMaster.accountManager.unlinkAccount(slave, None, None)
         if not ok:
             raise InvalidInput(message)
         return relations(proc)
