@@ -224,30 +224,82 @@
 .dark .text-amber-900 { color: rgb(253 230 138); }
 .dark .border-amber-200 { border-color: rgb(146 64 14); }
 
-/* ChanceCustom syntax overlay. The textarea itself stays transparent so the
-   coloured replica underneath is what the user reads; caret and selection stay
-   on the real control. Nesting depth only recolors brackets and function names. */
+/* Syntax overlay. Highlight colour only — never font-weight/letter-spacing —
+   so the replica stays the same width as the textarea and the caret lines up.
+   Nesting depth recolors brackets and names; unmatched openers stay muted. */
+.syntax-stack {
+  position: relative;
+}
+.syntax-stack > .syntax-highlight,
+.syntax-stack > .syntax-editor,
+.syntax-editor,
 .chance-editor {
+  margin: 0;
+  box-sizing: border-box;
+  padding: 0.5rem 0.75rem;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: calc(var(--radius) - 2px);
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  font-weight: 400;
+  font-kerning: none;
+  font-variant-ligatures: none;
+  line-height: 1.5rem;
+  letter-spacing: 0;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  tab-size: 4;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+.syntax-highlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: transparent;
+  border-color: transparent;
+  scrollbar-width: none;
+}
+.syntax-highlight::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+.syntax-editor,
+.chance-editor {
+  display: block;
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  resize: vertical;
   color: transparent;
   caret-color: hsl(var(--foreground));
   -webkit-text-fill-color: transparent;
+  background: transparent;
 }
+.syntax-editor:focus-visible,
+.chance-editor:focus-visible {
+  --tw-ring-offset-width: 0px;
+}
+.syntax-editor::placeholder,
 .chance-editor::placeholder {
   color: rgb(148 163 184);
   -webkit-text-fill-color: rgb(148 163 184);
 }
+.syntax-editor::selection,
 .chance-editor::selection {
   color: transparent;
   background: rgb(14 165 233 / 0.28);
   -webkit-text-fill-color: transparent;
 }
+.dark .syntax-editor::placeholder,
 .dark .chance-editor::placeholder {
   color: rgb(148 163 184);
   -webkit-text-fill-color: rgb(148 163 184);
 }
 .chance-highlight .cc-text { color: hsl(var(--foreground)); }
-.chance-highlight .cc-func { font-weight: 600; }
-.chance-highlight .cc-bracket { font-weight: 700; }
 .chance-highlight .cc-d0.cc-bracket,
 .chance-highlight .cc-d0.cc-func { color: #0284c7; }
 .chance-highlight .cc-d1.cc-bracket,
@@ -256,10 +308,11 @@
 .chance-highlight .cc-d2.cc-func { color: #0f766e; }
 .chance-highlight .cc-d3.cc-bracket,
 .chance-highlight .cc-d3.cc-func { color: #c2410c; }
-.chance-highlight .cc-sep { color: #d97706; font-weight: 700; }
-.chance-highlight .cc-split { color: #e11d48; font-weight: 700; }
+.chance-highlight .cc-sep { color: #d97706; }
+.chance-highlight .cc-split { color: #e11d48; }
 .chance-highlight .cc-escape { color: #64748b; }
 .chance-highlight .cc-code { color: #0891b2; }
+.chance-highlight .cc-open { color: #94a3b8; }
 .dark .chance-highlight .cc-d0.cc-bracket,
 .dark .chance-highlight .cc-d0.cc-func { color: #7dd3fc; }
 .dark .chance-highlight .cc-d1.cc-bracket,
@@ -272,3 +325,32 @@
 .dark .chance-highlight .cc-split { color: #fb7185; }
 .dark .chance-highlight .cc-escape { color: #94a3b8; }
 .dark .chance-highlight .cc-code { color: #67e8f9; }
+.dark .chance-highlight .cc-open { color: #64748b; }
+
+.reply-highlight .rv-text { color: hsl(var(--foreground)); }
+.reply-highlight .rv-d0.rv-brace,
+.reply-highlight .rv-d0.rv-var { color: #0284c7; }
+.reply-highlight .rv-d1.rv-brace,
+.reply-highlight .rv-d1.rv-var { color: #7c3aed; }
+.reply-highlight .rv-d2.rv-brace,
+.reply-highlight .rv-d2.rv-var { color: #0f766e; }
+.reply-highlight .rv-d3.rv-brace,
+.reply-highlight .rv-d3.rv-var { color: #c2410c; }
+.reply-highlight .rv-special { color: #d97706; }
+.reply-highlight .rv-escape { color: #64748b; }
+.reply-highlight .rv-deck { color: #0f766e; }
+.reply-highlight .rv-split { color: #e11d48; }
+.reply-highlight .rv-open { color: #94a3b8; }
+.dark .reply-highlight .rv-d0.rv-brace,
+.dark .reply-highlight .rv-d0.rv-var { color: #7dd3fc; }
+.dark .reply-highlight .rv-d1.rv-brace,
+.dark .reply-highlight .rv-d1.rv-var { color: #c4b5fd; }
+.dark .reply-highlight .rv-d2.rv-brace,
+.dark .reply-highlight .rv-d2.rv-var { color: #5eead4; }
+.dark .reply-highlight .rv-d3.rv-brace,
+.dark .reply-highlight .rv-d3.rv-var { color: #fdba74; }
+.dark .reply-highlight .rv-special { color: #fbbf24; }
+.dark .reply-highlight .rv-escape { color: #94a3b8; }
+.dark .reply-highlight .rv-deck { color: #5eead4; }
+.dark .reply-highlight .rv-split { color: #fb7185; }
+.dark .reply-highlight .rv-open { color: #64748b; }

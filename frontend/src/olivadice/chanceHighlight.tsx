@@ -1,6 +1,5 @@
 import React from 'react';
-import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
+import { SyntaxEditor } from './syntaxEditor';
 
 /**
  * ChanceCustom reply highlighter.
@@ -10,7 +9,7 @@ import { cn } from '@/lib/utils';
  * Nesting depth only changes the colour of brackets and function names.
  */
 
-export type TokenKind = 'text' | 'bracket' | 'func' | 'sep' | 'split' | 'escape' | 'code';
+export type TokenKind = 'text' | 'bracket' | 'func' | 'sep' | 'split' | 'escape' | 'code' | 'open';
 export type Token = { k: TokenKind; v: string; d: number };
 
 const ESCAPES = ['#zzk', '#yzk', '#fgf', '#xh', '#hz', '#jh'];
@@ -123,7 +122,7 @@ function parsePlain(src: string, tokens: Token[], from: number, end: number, dep
 
 function parseFunc(src: string, tokens: Token[], from: number, end: number, depth: number): number {
   const close = matchingEnd(src, from, end);
-  emit(tokens, 'bracket', '【', depth);
+  emit(tokens, close === -1 ? 'open' : 'bracket', '【', depth);
   let i = from + 1;
   const bound = close === -1 ? end : close;
   const name = matchFunc(src, i, bound);
@@ -160,41 +159,24 @@ type EditorProps = {
 };
 
 export function ChanceEditor({ value, onChange, className, maxLength, id, disabled, placeholder }: EditorProps) {
-  const tokens = React.useMemo(() => tokenize(value), [value]);
-  const areaRef = React.useRef<HTMLTextAreaElement>(null);
-  const preRef = React.useRef<HTMLPreElement>(null);
-  const sync = () => {
-    if (!areaRef.current || !preRef.current) return;
-    preRef.current.scrollTop = areaRef.current.scrollTop;
-    preRef.current.scrollLeft = areaRef.current.scrollLeft;
-  };
+  const tokens = React.useMemo(
+    () => tokenize(value).map(token => ({
+      className: `cc-token cc-${token.k} cc-d${token.d % 4}`,
+      v: token.v,
+    })),
+    [value],
+  );
   return (
-    <div className="relative mt-2">
-      <pre
-        ref={preRef}
-        aria-hidden
-        className="chance-highlight pointer-events-none absolute inset-0 overflow-auto whitespace-pre-wrap break-words rounded-md border border-transparent px-3 py-2 font-mono text-sm leading-6"
-      >
-        {tokens.map((token, index) => (
-          <span key={index} className={`cc-token cc-${token.k} cc-d${token.d % 4}`}>{token.v}</span>
-        ))}
-        {'\n'}
-      </pre>
-      <Textarea
-        ref={areaRef}
-        id={id}
-        value={value}
-        maxLength={maxLength}
-        disabled={disabled}
-        placeholder={placeholder}
-        spellCheck={false}
-        onScroll={sync}
-        onChange={event => onChange(event.target.value)}
-        className={cn(
-          'chance-editor relative z-10 resize-y whitespace-pre-wrap break-words bg-transparent font-mono text-sm leading-6',
-          className,
-        )}
-      />
-    </div>
+    <SyntaxEditor
+      value={value}
+      onChange={onChange}
+      tokens={tokens}
+      highlightClass="chance-highlight"
+      className={className}
+      maxLength={maxLength}
+      id={id}
+      disabled={disabled}
+      placeholder={placeholder}
+    />
   );
 }
