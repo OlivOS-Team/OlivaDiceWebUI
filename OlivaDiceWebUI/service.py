@@ -248,8 +248,9 @@ def masters(proc, bot_hash):
 
 def change_master(proc, bot_hash, action, master_id):
     _check_account(proc, bot_hash, False)
-    if action not in ('add', 'remove') or not isinstance(master_id, str) or not master_id.isdecimal() or len(master_id) > 32:
-        raise InvalidInput('请输入有效的数字骰主 ID')
+    if (action not in ('add', 'remove') or not isinstance(master_id, str)
+            or not re.fullmatch(r'[A-Za-z0-9]{1,32}', master_id)):
+        raise InvalidInput('请输入有效的骰主 ID（1 至 32 位字母或数字）')
     with LOCK:
         console = _core().console
         values = console.dictConsoleSwitch.get(bot_hash, {})
