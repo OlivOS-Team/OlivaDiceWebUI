@@ -33,7 +33,7 @@ base = {
     'disableReplyPrivate': 0, 'disablePrivate': 0, 'messageFliterMode': 0,
     'messageSplitGate': 650, 'messageSplitPageLimit': 10, 'messageSplitDelay': 1000,
     'messageSplitAutoShowPage': 1, 'messageSplitManualShowPage': 0,
-    'largeRollLimit': 300, 'multiRollDetail': 1, 'randomMode': 0,
+    'largeRollLimit': 300, 'multiRollDetail': 1, 'checkTargetDetail': 1, 'randomMode': 0,
     'drawRecommendMode': 1, 'drawListMode': 2, 'helpRecommendGate': 25,
     'censorMode': 1, 'censorMatchMode': 1, 'defaultShowDefault': 0,
     'defaultAutoSn': 0, 'portEnable': 1, 'portCodeTTL': 86400,
@@ -54,12 +54,15 @@ core.console = types.SimpleNamespace(
 demo_relations = {}
 core.console.getAllAccountRelations = lambda: demo_relations.copy()
 core.msgCustom = types.SimpleNamespace(
-    dictStrCustom={'strHello': '你好，我是青果骰。', 'strForGroupOnly': '此功能仅对群聊开放。', 'strBotName': '青果骰'},
+    dictStrCustom={'strHello': '你好，我是青果骰。', 'strForGroupOnly': '此功能仅对群聊开放。', 'strBotName': '青果骰',
+                   'strRollError13': '表达式[{tRollPara}]掷骰错误！计算量超过限制！'},
     dictStrCustomDict={
         'demo-qq': {'strHello': '欢迎使用青果骰！请发送 .help 查看帮助。',
                     'strForGroupOnly': '此功能仅对群聊开放。', 'strBotName': '小青果酱',
-                    'strRoll': '{tUserName} 掷出了 {tRollResult}', 'strHelp': '发送 .help 指令 查看帮助'},
-        'demo-discord': {'strHello': 'Hello from OlivaDice!', 'strBotName': 'Olive Demo'},
+                    'strRoll': '{tUserName} 掷出了 {tRollResult}', 'strHelp': '发送 .help 指令 查看帮助',
+                    'strRollError13': '表达式[{tRollPara}]掷骰错误！计算量超过限制！'},
+        'demo-discord': {'strHello': 'Hello from OlivaDice!', 'strBotName': 'Olive Demo',
+                         'strRollError13': '表达式[{tRollPara}]掷骰错误！计算量超过限制！'},
     },
     dictStrCustomUpdateDict={'demo-qq': {'strHello': '欢迎使用青果骰！请发送 .help 查看帮助。'}, 'demo-discord': {}},
 )

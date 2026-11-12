@@ -31,6 +31,7 @@ SWITCHES = {
     'messageSplitManualShowPage': ('消息', '手动显示分页', 0, 1, ''),
     'largeRollLimit': ('掷骰', '大规模掷骰上限', 1, 100000, ''),
     'multiRollDetail': ('掷骰', '显示多轮掷骰详情', 0, 1, ''),
+    'checkTargetDetail': ('掷骰', '显示检定目标表达式详情', 0, 1, ''),
     'randomMode': ('掷骰', '随机模式', 0, 1, ''),
     'drawRecommendMode': ('牌堆与帮助', '抽牌推荐模式', 0, 1, ''),
     'drawListMode': ('牌堆与帮助', '牌堆列表模式', 0, 3, ''),

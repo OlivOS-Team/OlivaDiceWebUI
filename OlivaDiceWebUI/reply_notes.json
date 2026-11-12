@@ -84,6 +84,7 @@
   "strRollError10": "掷骰错误:\n错误的子参数",
   "strRollError11": "掷骰错误:\n计算极值时出错",
   "strRollError12": "掷骰错误:\n解析技能变量时出错",
+  "strRollError13": "掷骰错误:\n计算量超过资源限制",
   "strRollErrorUnknown": "掷骰错误:\n未知的错误",
   "strRollErrorHelp": "掷骰错误的提示片段",
   "strSetGroupTempRule": "【.set(coc/dnd/temp/rule)】等指令\n设置群规则模板",
