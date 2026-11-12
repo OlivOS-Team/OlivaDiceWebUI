@@ -281,8 +281,11 @@ class WebUITest(unittest.TestCase):
         self.assertNotIn('strHello', self.fake.msgCustom.dictStrCustomUpdateDict['bot-1'])
         self.assertEqual(service.change_master(proc, 'bot-1', 'add', '456')[0]['id'], '456')
         self.assertEqual(service.change_master(proc, 'bot-1', 'remove', '456'), [])
-        with self.assertRaises(service.InvalidInput):
-            service.change_master(proc, 'bot-1', 'add', '4abc')
+        self.assertEqual(service.change_master(proc, 'bot-1', 'add', '4abc')[0]['id'], '4abc')
+        self.assertEqual(service.change_master(proc, 'bot-1', 'remove', '4abc'), [])
+        for invalid_id in ('', 'a-b', 'a' * 33):
+            with self.assertRaises(service.InvalidInput):
+                service.change_master(proc, 'bot-1', 'add', invalid_id)
         self.assertEqual(service.set_help_doc(proc, 'bot-1', '新词条', '内容'), '内容')
         self.assertEqual(service.help_docs(proc, 'bot-1')[-1]['key'], '新词条')
         service.set_help_doc(proc, 'bot-1', '新词条', delete=True)
