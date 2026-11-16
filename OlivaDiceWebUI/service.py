@@ -40,6 +40,7 @@ SWITCHES = {
     'censorMatchMode': ('内容与默认值', '内容审查匹配模式', 0, 1, ''),
     'defaultShowDefault': ('内容与默认值', '默认显示技能值', 0, 1, ''),
     'defaultAutoSn': ('内容与默认值', '默认自动群名片', 0, 1, ''),
+    'forceMarkdownReply': ('接入', '是否使用markdown回复词', 0, 1, '仅 QQ 官方机器人有效'),
     'portEnable': ('导入导出', '启用端口功能', 0, 1, ''),
     'portCodeTTL': ('导入导出', '端口验证码有效期（秒）', 0, 2592000, ''),
     'portSplitGate': ('导入导出', '端口分页阈值', 1, 100000, ''),

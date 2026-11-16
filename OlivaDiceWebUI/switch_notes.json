@@ -1,5 +1,6 @@
 {
   "globalEnable": "全局开关\n当前版本无用，通常不需要调整",
+  "forceMarkdownReply": "是否使用markdown回复词\n0关，1开，默认0。\n打开后 OlivaDiceCore 的全部回复在 QQ 官方机器人上走 markdown，原有保护保留。\n仅 QQ 官方机器人有效，其它平台仍是纯文本。",
   "userConfigCount": "用户记录刷写循环计数器，通常不需要调整",
   "pulseInterval": "心跳上报频率，通常不需要调整",
   "autoAcceptGroupAdd": "自动同意群邀请\n 0 不自动同意\n 1 自动同意",
