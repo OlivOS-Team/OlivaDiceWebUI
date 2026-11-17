@@ -542,6 +542,98 @@ def _master_installed(proc):
         return importlib.util.find_spec('OlivaDiceMaster') is not None
 
 
+def _censor_mod():
+    core = _core()
+    module = getattr(core, 'censorAPI', None)
+    if module is None:
+        raise InvalidInput('敏感词模块未加载')
+    return module
+
+
+def censors(proc, bot_hash):
+    _check_account(proc, bot_hash)
+    with LOCK:
+        module = _censor_mod()
+        data = module.getCensorSnapshot(bot_hash)
+        words = data['config']
+        from_files = data['fromFiles']
+        return {
+            'scope': bot_hash,
+            'words': words,
+            'count': len(words),
+            'fromFileCount': len(from_files),
+            'fromFileSample': from_files[:20],
+            'inheritedCount': len(set(module.getConfigList('unity')) - set(words)) if bot_hash != 'unity' else 0,
+        }
+
+
+def set_censor(proc, bot_hash, action, word=None, words=None):
+    _check_account(proc, bot_hash)
+    if action not in ('add', 'delete', 'replace', 'import', 'clear', 'reload'):
+        raise InvalidInput('敏感词操作无效')
+    with LOCK:
+        module = _censor_mod()
+        current = list(module.getConfigList(bot_hash))
+        if action == 'reload':
+            try:
+                module.reloadConfigList(bot_hash)
+            except ValueError as error:
+                raise InvalidInput(str(error))
+            module.rebuildCensorByHash(bot_hash)
+            return censors(proc, bot_hash)
+        if action == 'clear':
+            module.setConfigList(bot_hash, [])
+            module.rebuildCensorByHash(bot_hash)
+            return censors(proc, bot_hash)
+        if action == 'add':
+            incoming = module.normalizeCensorWordList([word] if word is not None else [])
+            if not incoming:
+                raise InvalidInput('请输入有效的敏感词')
+            merged = list(current)
+            for item in incoming:
+                if item not in merged:
+                    merged.append(item)
+            module.setConfigList(bot_hash, merged)
+            module.rebuildCensorByHash(bot_hash)
+            return censors(proc, bot_hash)
+        if action == 'delete':
+            incoming = module.normalizeCensorWordList([word] if word is not None else [])
+            if not incoming:
+                raise InvalidInput('请选择要删除的敏感词')
+            target = incoming[0]
+            if target not in current:
+                raise InvalidInput('该敏感词不存在，请刷新后重试')
+            current.remove(target)
+            module.setConfigList(bot_hash, current)
+            module.rebuildCensorByHash(bot_hash)
+            return censors(proc, bot_hash)
+        if action == 'replace':
+            # 修改词条:把旧词换成新词,位置保持不变。
+            old = module.normalizeCensorWord(word)
+            new = module.normalizeCensorWord((words or {}).get('value')) if isinstance(words, dict) else None
+            if old is None or new is None:
+                raise InvalidInput('请输入修改前后的敏感词')
+            if old not in current:
+                raise InvalidInput('该敏感词不存在，请刷新后重试')
+            index = current.index(old)
+            current[index] = new
+            module.setConfigList(bot_hash, current)
+            module.rebuildCensorByHash(bot_hash)
+            return censors(proc, bot_hash)
+        incoming = module.normalizeCensorWordList(words or [])
+        if not incoming:
+            raise InvalidInput('导入内容没有有效的敏感词')
+        module.setConfigList(bot_hash, incoming)
+        module.rebuildCensorByHash(bot_hash)
+        return censors(proc, bot_hash)
+
+
+def export_censors(proc, bot_hash):
+    _check_account(proc, bot_hash)
+    with LOCK:
+        return list(_censor_mod().getConfigList(bot_hash))
+
+
 def backup(proc):
     with LOCK:
         values = getattr(_core().console, 'dictBackupConfig', {}).get('unity', {})

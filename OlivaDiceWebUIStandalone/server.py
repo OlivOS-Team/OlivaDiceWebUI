@@ -484,6 +484,10 @@ def handler_factory(proc, token):
                     self._send(200, service.relations(proc))
                 elif path.path == '/api/help':
                     self._send(200, {'docs': service.help_docs(proc, bot_hash)})
+                elif path.path == '/api/censor':
+                    self._send(200, service.censors(proc, bot_hash))
+                elif path.path == '/api/censor/export':
+                    self._send(200, {'words': service.export_censors(proc, bot_hash)})
                 elif path.path == '/api/help/export':
                     self._send(200, {'docs': service.export_help_docs(proc, bot_hash)})
                 elif path.path == '/api/decks':
@@ -559,6 +563,9 @@ def handler_factory(proc, token):
                     result = service.change_relation(proc, data.get('action'), data.get('slave'), data.get('master'))
                 elif path == '/api/help':
                     result = service.set_help_doc(proc, bot_hash, data.get('key'), data.get('value'), data.get('action') == 'delete')
+                elif path == '/api/censor':
+                    result = service.set_censor(
+                        proc, bot_hash, data.get('action'), data.get('word'), data.get('words'))
                 elif path == '/api/help/manage':
                     if data.get('action') != 'import':
                         raise service.InvalidInput('帮助文档操作无效')

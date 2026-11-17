@@ -6,11 +6,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite --open /olivadice.html",
-    "lint": "tsc -p tsconfig.app.json --noEmit --emitDeclarationOnly false --composite false",
-    "build": "npm run lint && npm run build:official && npm run build:standalone",
-    "build:official": "vite build --mode official",
-    "build:standalone": "vite build --mode standalone",
-    "preview": "vite preview --open /olivadice.html"
+    "lint": "npm run lint:format && npm run lint:types",
+    "build": "npm run build:official && npm run build:standalone",
+    "build:official": "npm run lint && vite build --mode official",
+    "build:standalone": "npm run lint && vite build --mode standalone",
+    "preview": "vite preview --open /olivadice.html",
+    "lint:format": "prettier --check \"src/**/*.{ts,tsx,css}\"",
+    "lint:types": "tsc -p tsconfig.app.json --noEmit --emitDeclarationOnly false --composite false"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.0",
@@ -29,6 +31,7 @@
     "@vitejs/plugin-react": "^4.3.0",
     "autoprefixer": "^10.4.0",
     "postcss": "^8.4.0",
+    "prettier": "^3.10.1",
     "tailwindcss": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.5.0",
