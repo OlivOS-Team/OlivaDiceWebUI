@@ -586,16 +586,21 @@ def set_censor(proc, bot_hash, action, word=None, words=None):
             module.rebuildCensorByHash(bot_hash)
             return censors(proc, bot_hash)
         if action == 'add':
-            incoming = module.normalizeCensorWordList([word] if word is not None else [])
-            if not incoming:
-                raise InvalidInput('请输入有效的敏感词')
-            merged = list(current)
-            for item in incoming:
-                if item not in merged:
-                    merged.append(item)
-            module.setConfigList(bot_hash, merged)
-            module.rebuildCensorByHash(bot_hash)
-            return censors(proc, bot_hash)
+            raw_lines = words if isinstance(words, list) else ([word] if word is not None else [])
+            report = module.summarizeCensorAdds(current, raw_lines)
+            if report['total'] == 0:
+                raise InvalidInput('请输入要添加的敏感词，每行一条')
+            if report['accepted']:
+                module.setConfigList(bot_hash, list(current) + report['accepted'])
+                module.rebuildCensorByHash(bot_hash)
+            snapshot = censors(proc, bot_hash)
+            snapshot['report'] = {
+                'total': report['total'],
+                'success': report['success'],
+                'failed': report['failed'],
+                'failures': report['failures'],
+            }
+            return snapshot
         if action == 'delete':
             incoming = module.normalizeCensorWordList([word] if word is not None else [])
             if not incoming:
