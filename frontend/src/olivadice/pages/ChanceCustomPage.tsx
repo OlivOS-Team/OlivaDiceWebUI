@@ -369,7 +369,10 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
       <SectionTitle
         eyebrow="CHANCE CUSTOM"
         title="程心自定义"
-        description={`ChanceCustom ${state.version || '未知版本'} · 数据版本 ${state.dataVersion} · 当前范围 ${bot === 'unity' ? '全局' : '账号'}`}
+        description={
+          `ChanceCustom ${state.version || '未知版本'} · 数据版本 ${state.dataVersion}` +
+          ` · 当前范围 ${bot === 'unity' ? '全局' : '账号'}`
+        }
         action={
           <div className="flex flex-wrap gap-2">
             {tutorialLink}
@@ -431,7 +434,11 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
                       onClick={() => void choose(item.key)}
                       className={
                         `mb-1 w-full rounded-lg px-3 py-3 text-left` +
-                        `${selected === item.key && !creating ? 'bg-brand-50 text-brand-800 ring-1 ring-brand-200' : 'hover:bg-muted'}`
+                        `${
+                          selected === item.key && !creating
+                            ? 'bg-brand-50 text-brand-800 ring-1 ring-brand-200'
+                            : 'hover:bg-muted'
+                        }`
                       }
                     >
                       <div className="flex items-center gap-2">
@@ -441,7 +448,10 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
                         <span className="text-[10px] text-muted-foreground">P{item.priority}</span>
                       </div>
                       <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {matchTypeLabels[item.matchType]} · {matchPlaceLabels[item.matchPlace]} ·{' '}
+                        {matchTypeLabels[item.matchType]}
+                        {' · '}
+                        {matchPlaceLabels[item.matchPlace]}
+                        {' · '}
                         {item.value || '空回复'}
                       </p>
                     </button>
@@ -450,10 +460,18 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
                   <Empty title="没有匹配的规则" />
                 )}
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2 text-xs text-muted-foreground">
+              <div
+                className={
+                  'flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2 ' +
+                  'text-xs text-muted-foreground'
+                }
+              >
                 <span>
                   {filtered.length
-                    ? `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filtered.length)}`
+                    ? `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(
+                        currentPage * PAGE_SIZE,
+                        filtered.length,
+                      )}`
                     : '0'}{' '}
                   / {filtered.length}
                 </span>
@@ -502,7 +520,9 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
                           {creating ? '设置触发条件和回复' : active?.key}
                         </h3>
                       </div>
-                      <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+                      <span
+                        className={'rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground'}
+                      >
                         回复 {draft.value.length} 字
                       </span>
                     </div>
@@ -801,7 +821,10 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
                   packageRuleMatches.map(item => (
                     <label
                       key={item.key}
-                      className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted"
+                      className={
+                        'flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm ' +
+                        'hover:bg-muted'
+                      }
                     >
                       <input
                         type="checkbox"

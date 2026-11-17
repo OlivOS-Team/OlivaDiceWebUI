@@ -269,7 +269,11 @@ export function HelpPage({
                 onChange={value => updateFilter(value, statusFilter)}
                 placeholder="搜索词条或内容"
               />
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+              <div
+                className={
+                  'flex flex-wrap items-center justify-between gap-2 text-xs ' + 'text-slate-500'
+                }
+              >
                 <span>
                   {filtered.length} / {docs.length} 条词条
                 </span>

@@ -43,7 +43,12 @@ function SettingRow({
     }
   };
   return (
-    <div className="flex flex-col gap-3 border-b border-slate-100 py-4 last:border-0 sm:flex-row sm:items-center sm:justify-between">
+    <div
+      className={
+        'flex flex-col gap-3 border-b border-slate-100 py-4 last:border-0 ' +
+        'sm:flex-row sm:items-center sm:justify-between'
+      }
+    >
       <div className="min-w-0 flex-1 pr-4">
         <div className="text-sm font-medium text-slate-900">{item.label}</div>
         <div className="mt-0.5 text-xs text-slate-500">
@@ -274,7 +279,9 @@ export function SettingsPage({ token, bot, notify }: Props) {
               onClick={() => setSection(name)}
               className={
                 `shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors` +
-                `${section === name ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`
+                `${
+                  section === name ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+                }`
               }
             >
               {name}

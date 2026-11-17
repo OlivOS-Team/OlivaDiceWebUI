@@ -139,7 +139,8 @@ export function DecksPage({ token, bot, notify }: Props) {
       return;
     setBusy(true);
     try {
-      const query = `?bot=${encodeURIComponent(scope)}&kind=${kind}&name=${encodeURIComponent(file.name)}`;
+      const query =
+        `?bot=${encodeURIComponent(scope)}` + `&kind=${kind}&name=${encodeURIComponent(file.name)}`;
       await uploadFile(`/api/deck-files/upload${query}`, token, file);
       await loadFiles(scope);
       await loadIndex();
@@ -269,7 +270,11 @@ export function DecksPage({ token, bot, notify }: Props) {
           <>
             <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_auto]">
               <SearchField value={query} onChange={setQuery} placeholder="搜索牌堆或分组" />
-              <div className="flex items-center rounded-lg border bg-white px-4 text-sm text-slate-600">
+              <div
+                className={
+                  'flex items-center rounded-lg border bg-white px-4 text-sm ' + 'text-slate-600'
+                }
+              >
                 已加载 {groupCount} 个分组 · {decks.length} 个来源
               </div>
             </div>
@@ -283,7 +288,11 @@ export function DecksPage({ token, bot, notify }: Props) {
                         onClick={() => setSelected(deck.name)}
                         className={
                           `mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left` +
-                          `${selected === deck.name ? 'bg-brand-50 text-brand-800 ring-1 ring-brand-200' : 'hover:bg-slate-50'}`
+                          `${
+                            selected === deck.name
+                              ? 'bg-brand-50 text-brand-800 ring-1 ring-brand-200'
+                              : 'hover:bg-slate-50'
+                          }`
                         }
                       >
                         <Files className="h-4 w-4 shrink-0 text-brand-500" />
@@ -303,7 +312,12 @@ export function DecksPage({ token, bot, notify }: Props) {
                   {active ? (
                     <>
                       <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                        <div
+                          className={
+                            'flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 ' +
+                            'text-brand-600'
+                          }
+                        >
                           <Layers3 className="h-5 w-5" />
                         </div>
                         <div>
@@ -318,7 +332,9 @@ export function DecksPage({ token, bot, notify }: Props) {
                             {active.groups.map(group => (
                               <span
                                 key={group}
-                                className="rounded-md border bg-slate-50 px-3 py-1.5 text-sm text-slate-700"
+                                className={
+                                  'rounded-md border bg-slate-50 px-3 py-1.5 text-sm text-slate-700'
+                                }
                               >
                                 {group}
                               </span>

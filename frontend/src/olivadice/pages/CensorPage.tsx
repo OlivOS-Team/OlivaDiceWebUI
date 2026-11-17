@@ -375,7 +375,11 @@ export function CensorPage({ token, bot, notify }: Props) {
                 }}
                 placeholder="搜索敏感词"
               />
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+              <div
+                className={
+                  'flex flex-wrap items-center justify-between gap-2 text-xs ' + 'text-slate-500'
+                }
+              >
                 <span>
                   {filtered.length} / {words.length} 条自定义词
                 </span>
@@ -404,7 +408,11 @@ export function CensorPage({ token, bot, notify }: Props) {
               )}
             </div>
             {filtered.length > PAGE_SIZE && (
-              <div className="flex items-center justify-between border-t px-3 py-2 text-xs text-slate-500">
+              <div
+                className={
+                  'flex items-center justify-between border-t px-3 py-2 text-xs ' + 'text-slate-500'
+                }
+              >
                 <span>
                   {(currentPage - 1) * PAGE_SIZE + 1}–
                   {Math.min(currentPage * PAGE_SIZE, filtered.length)} / {filtered.length}

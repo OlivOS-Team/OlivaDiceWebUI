@@ -354,7 +354,11 @@ export function RepliesPage({ token, bot, notify, onDirtyChange }: Props) {
                 onChange={value => updateFilter(value, statusFilter)}
                 placeholder="搜索键名或回复内容"
               />
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+              <div
+                className={
+                  'flex flex-wrap items-center justify-between gap-2 text-xs ' + 'text-slate-500'
+                }
+              >
                 <span>
                   {filtered.length} / {items.length} 条回复
                 </span>
@@ -390,7 +394,11 @@ export function RepliesPage({ token, bot, notify, onDirtyChange }: Props) {
                     onClick={() => void choose(item.key)}
                     className={
                       `mb-1 w-full rounded-lg px-3 py-3 text-left transition-colors` +
-                      `${selected === item.key && !creating ? 'bg-brand-50 text-brand-800 ring-1 ring-brand-200' : 'hover:bg-slate-50'}`
+                      `${
+                        selected === item.key && !creating
+                          ? 'bg-brand-50 text-brand-800 ring-1 ring-brand-200'
+                          : 'hover:bg-slate-50'
+                      }`
                     }
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -408,10 +416,18 @@ export function RepliesPage({ token, bot, notify, onDirtyChange }: Props) {
                 <Empty title="没有匹配的回复" />
               )}
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2 text-xs text-slate-500">
+            <div
+              className={
+                'flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2 ' +
+                'text-xs text-slate-500'
+              }
+            >
               <span>
                 {filtered.length
-                  ? `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filtered.length)}`
+                  ? `${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(
+                      currentPage * PAGE_SIZE,
+                      filtered.length,
+                    )}`
                   : '0'}{' '}
                 / {filtered.length}
               </span>
@@ -453,7 +469,11 @@ export function RepliesPage({ token, bot, notify, onDirtyChange }: Props) {
                 <>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <div className="mb-2 flex items-center gap-2 text-xs font-medium text-brand-600">
+                      <div
+                        className={
+                          'mb-2 flex items-center gap-2 text-xs font-medium text-brand-600'
+                        }
+                      >
                         <Sparkles className="h-4 w-4" />
                         {creating
                           ? '新增自定义回复'

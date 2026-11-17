@@ -153,7 +153,9 @@ type Shared = { token: string; bot: string; notify: (message: string, error?: bo
 const LogoMark = ({ large = false }: { large?: boolean }) => (
   <span
     aria-hidden="true"
-    className={`block shrink-0 [&_svg]:h-full [&_svg]:w-full ${large ? 'h-44 w-44 brightness-0 invert' : 'h-10 w-10'}`}
+    className={`block shrink-0 [&_svg]:h-full [&_svg]:w-full ${
+      large ? 'h-44 w-44 brightness-0 invert' : 'h-10 w-10'
+    }`}
     dangerouslySetInnerHTML={{ __html: olivaLogo }}
   />
 );
@@ -241,7 +243,11 @@ function Dashboard({
         }
       >
         <div className="relative z-10 max-w-2xl">
-          <div className="flex items-center gap-2 text-[11px] font-bold tracking-[0.22em] text-brand-200">
+          <div
+            className={
+              'flex items-center gap-2 text-[11px] font-bold tracking-[0.22em] ' + 'text-brand-200'
+            }
+          >
             <Sparkles className="h-4 w-4" />
             OLIVADICE CONTROL CENTER
           </div>
@@ -250,7 +256,10 @@ function Dashboard({
             从账号出发，管理核心配置、回复词、帮助文档与牌堆。更改作用于当前运行的 OlivOS 进程。
           </p>
           <Button
-            className="mt-6 bg-sky-50 text-brand-800 hover:bg-sky-100 dark:bg-sky-200 dark:text-sky-950 dark:hover:bg-sky-100"
+            className={
+              'mt-6 bg-sky-50 text-brand-800 hover:bg-sky-100 dark:bg-sky-200 ' +
+              'dark:text-sky-950 dark:hover:bg-sky-100'
+            }
             onClick={() => navigate('accounts')}
           >
             查看账号 <ArrowRight className="ml-2 h-4 w-4" />
@@ -258,7 +267,10 @@ function Dashboard({
         </div>
         <div
           aria-hidden="true"
-          className="absolute -right-24 -top-28 h-96 w-96 rotate-12 rounded-[5rem] border border-white/20 bg-white/5"
+          className={
+            'absolute -right-24 -top-28 h-96 w-96 rotate-12 rounded-[5rem] border ' +
+            'border-white/20 bg-white/5'
+          }
         />
         <div
           aria-hidden="true"
@@ -305,7 +317,9 @@ function Dashboard({
                       请手动复制认证指令
                     </span>
                     <button
-                      className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+                      className={
+                        'text-xs text-slate-500 hover:text-slate-900 ' + 'dark:hover:text-slate-100'
+                      }
                       onClick={() => setCopyFallback(false)}
                     >
                       关闭
@@ -346,7 +360,12 @@ function Dashboard({
             >
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                  <span
+                    className={
+                      'flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 ' +
+                      'text-brand-600'
+                    }
+                  >
                     <item.icon className="h-4 w-4" />
                   </span>
                   <ArrowRight className="h-4 w-4 text-slate-300" />
@@ -369,7 +388,12 @@ function Dashboard({
             </div>
             {current ? (
               <>
-                <div className="mt-5 flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-4 py-4">
+                <div
+                  className={
+                    'mt-5 flex items-center justify-between gap-3 rounded-xl bg-slate-50 ' +
+                    'px-4 py-4'
+                  }
+                >
                   <div>
                     <div className="font-medium">
                       {current.platform} · {current.id}
@@ -655,10 +679,19 @@ export function OlivaDiceApp() {
   if (!connected)
     return (
       <div className="min-h-screen bg-background text-foreground">
-        <main className="mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-4 py-10 md:px-8">
+        <main
+          className={
+            'mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-4 ' + 'py-10 md:px-8'
+          }
+        >
           <Notice message={notice.message} error={notice.error} onClose={() => notify('')} />
           {preview && (
-            <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <div
+              className={
+                'mb-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm ' +
+                'text-amber-900'
+              }
+            >
               {standalone
                 ? '当前打开的是静态页面预览。请使用独立服务地址打开页面，才能读取和保存数据。'
                 : '当前页面没有 OlivOS 宿主消息桥。请先登录 OlivOS WebUI，再从侧栏的「插件页面」打开。'}
@@ -673,7 +706,12 @@ export function OlivaDiceApp() {
               }
             >
               <div className="relative z-10 max-w-sm">
-                <div className="flex items-center gap-2 text-xs font-semibold tracking-[0.2em] text-brand-200">
+                <div
+                  className={
+                    'flex items-center gap-2 text-xs font-semibold tracking-[0.2em] ' +
+                    'text-brand-200'
+                  }
+                >
                   <Sparkles className="h-4 w-4" />
                   OLIVADICE CONTROL CENTER
                 </div>
@@ -706,7 +744,12 @@ export function OlivaDiceApp() {
             </section>
             <Card className="flex items-center border-slate-200 shadow-sm">
               <CardContent className="w-full p-7 md:p-9">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                <div
+                  className={
+                    'flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 ' +
+                    'text-brand-600'
+                  }
+                >
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 {standalone ? (
@@ -851,7 +894,11 @@ export function OlivaDiceApp() {
   );
   const page = (
     <main className="mx-auto max-w-[1440px] px-4 py-6 md:px-8 md:py-8">
-      <div className="mb-4 flex min-h-9 items-center justify-between gap-3 text-xs text-muted-foreground">
+      <div
+        className={
+          'mb-4 flex min-h-9 items-center justify-between gap-3 text-xs ' + 'text-muted-foreground'
+        }
+      >
         {scopeBadge}
         {connected && accountSelect(true)}
       </div>
@@ -930,7 +977,11 @@ export function OlivaDiceApp() {
               <LogoMark />
               <div className="min-w-0">
                 <div className="text-base font-bold tracking-tight text-brand-600">青果骰</div>
-                <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                <div
+                  className={
+                    'text-[10px] font-medium uppercase tracking-wider ' + 'text-muted-foreground'
+                  }
+                >
                   OlivaDice WebUI
                 </div>
               </div>
@@ -945,7 +996,12 @@ export function OlivaDiceApp() {
             <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-6">
               {nav.map(group => (
                 <div key={group.heading}>
-                  <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                  <div
+                    className={
+                      'mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] ' +
+                      'text-muted-foreground'
+                    }
+                  >
                     {group.heading}
                   </div>
                   <div className="space-y-1">
@@ -958,7 +1014,8 @@ export function OlivaDiceApp() {
                           `text-sm font-medium transition-colors` +
                           `${
                             view === id
-                              ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/50 dark:text-brand-200'
+                              ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/50' +
+                                ' dark:text-brand-200'
                               : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                           }`
                         }
@@ -975,7 +1032,12 @@ export function OlivaDiceApp() {
               ))}
             </nav>
             <div className="border-t p-4">
-              <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2.5 text-xs text-muted-foreground">
+              <div
+                className={
+                  'flex items-center gap-2 rounded-lg bg-muted px-3 py-2.5 text-xs ' +
+                  'text-muted-foreground'
+                }
+              >
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
                 管理服务已连接<span className="ml-auto">{version && `v${version}`}</span>
               </div>
@@ -1015,7 +1077,12 @@ export function OlivaDiceApp() {
                 <LogoMark />
                 <div className="min-w-0">
                   <div className="text-sm font-bold text-brand-600">青果骰</div>
-                  <div className="hidden text-[10px] uppercase tracking-wider text-muted-foreground sm:block">
+                  <div
+                    className={
+                      'hidden text-[10px] uppercase tracking-wider text-muted-foreground ' +
+                      'sm:block'
+                    }
+                  >
                     OlivaDice WebUI
                   </div>
                 </div>

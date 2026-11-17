@@ -49,7 +49,9 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             aria-modal="true"
             aria-labelledby="confirm-title"
             aria-describedby="confirm-message"
-            className="w-full max-w-md rounded-2xl border bg-card p-6 text-card-foreground shadow-2xl"
+            className={
+              'w-full max-w-md rounded-2xl border bg-card p-6 text-card-foreground ' + 'shadow-2xl'
+            }
           >
             <h2 id="confirm-title" className="text-lg font-semibold">
               {request.title || '确认操作'}
@@ -108,7 +110,12 @@ export function SearchField({
 }
 export function Empty({ title, detail }: { title: string; detail?: string }) {
   return (
-    <div className="flex min-h-44 flex-col items-center justify-center rounded-xl border border-dashed bg-muted/40 px-6 text-center">
+    <div
+      className={
+        'flex min-h-44 flex-col items-center justify-center rounded-xl border ' +
+        'border-dashed bg-muted/40 px-6 text-center'
+      }
+    >
       <p className="font-medium">{title}</p>
       {detail && <p className="mt-1 max-w-sm text-sm text-muted-foreground">{detail}</p>}
     </div>
@@ -139,8 +146,10 @@ export function Notice({
         `mb-5 flex items-start gap-2 rounded-lg border px-4 py-3 text-sm` +
         `${
           error
-            ? 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-200'
-            : 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200'
+            ? 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 ' +
+              'dark:bg-rose-950/50 dark:text-rose-200'
+            : 'border-emerald-200 bg-emerald-50 text-emerald-800 ' +
+              'dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200'
         }`
       }
     >
@@ -287,7 +296,9 @@ export function Select({
           {current?.label ?? placeholder ?? ''}
         </span>
         <ChevronDown
-          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+            open ? 'rotate-180' : ''
+          }`}
         />
       </button>
       {open && (
@@ -313,7 +324,13 @@ export function Select({
               className={
                 `flex w-full cursor-pointer items-center justify-between gap-3 ` +
                 `rounded-md px-3 py-2 text-left text-sm` +
-                `${option.disabled ? 'cursor-not-allowed opacity-50' : index === active ? 'bg-accent text-accent-foreground' : ''}`
+                `${
+                  option.disabled
+                    ? 'cursor-not-allowed opacity-50'
+                    : index === active
+                      ? 'bg-accent text-accent-foreground'
+                      : ''
+                }`
               }
             >
               <span className="truncate">{option.label}</span>

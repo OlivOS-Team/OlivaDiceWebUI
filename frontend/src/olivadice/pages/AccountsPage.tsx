@@ -171,7 +171,12 @@ export function AccountsPage({ token, bot, accounts, selectBot, notify }: Props)
     return accounts.find(account => account.hash === hash)?.label || hash;
   };
   const OfflineBadge = () => (
-    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-slate-700 dark:text-slate-300">
+    <span
+      className={
+        'rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-medium ' +
+        'text-slate-500 dark:bg-slate-700 dark:text-slate-300'
+      }
+    >
       离线
     </span>
   );
@@ -190,10 +195,17 @@ export function AccountsPage({ token, bot, accounts, selectBot, notify }: Props)
               .map(account => (
                 <Card
                   key={account.hash}
-                  className={`border-slate-200 shadow-sm ${bot === account.hash ? 'ring-2 ring-brand-200' : ''}`}
+                  className={`border-slate-200 shadow-sm ${
+                    bot === account.hash ? 'ring-2 ring-brand-200' : ''
+                  }`}
                 >
                   <CardContent className="flex flex-wrap items-center gap-4 p-5">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                    <div
+                      className={
+                        'flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 ' +
+                        'text-brand-600'
+                      }
+                    >
                       <Bot className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -202,7 +214,12 @@ export function AccountsPage({ token, bot, accounts, selectBot, notify }: Props)
                           {account.platform} · {account.id}
                         </h3>
                         {bot === account.hash && (
-                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                          <span
+                            className={
+                              'rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium ' +
+                              'text-emerald-700'
+                            }
+                          >
                             当前账号
                           </span>
                         )}
@@ -266,7 +283,9 @@ export function AccountsPage({ token, bot, accounts, selectBot, notify }: Props)
                     masters.map(master => (
                       <div
                         key={master.id}
-                        className="flex items-center gap-3 rounded-lg border bg-slate-50 px-3 py-2.5"
+                        className={
+                          'flex items-center gap-3 rounded-lg border bg-slate-50' + ' px-3 py-2.5'
+                        }
                       >
                         <div className="min-w-0 flex-1">
                           <div className="break-all text-sm font-medium">{master.id}</div>
