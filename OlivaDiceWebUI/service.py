@@ -563,6 +563,7 @@ def censors(proc, bot_hash):
             'count': len(words),
             'fromFileCount': len(from_files),
             'fromFileSample': from_files[:20],
+            'files': data.get('files') if isinstance(data.get('files'), list) else [],
             'inheritedCount': len(set(module.getConfigList('unity')) - set(words)) if bot_hash != 'unity' else 0,
         }
 
@@ -577,6 +578,8 @@ def set_censor(proc, bot_hash, action, word=None, words=None):
         if action == 'reload':
             try:
                 module.reloadConfigList(bot_hash)
+                if hasattr(module, 'reloadCensorFiles'):
+                    module.reloadCensorFiles(bot_hash)
             except ValueError as error:
                 raise InvalidInput(str(error))
             module.rebuildCensorByHash(bot_hash)
