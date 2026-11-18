@@ -532,7 +532,7 @@ export function CensorPage({ token, bot, notify }: Props) {
                         <span className="min-w-0 flex-1 truncate text-sm">{word}</span>
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
                           onClick={() => {
                             setEditing(word);
                             setEditDraft(word);
@@ -543,7 +543,7 @@ export function CensorPage({ token, bot, notify }: Props) {
                         </Button>
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
                           className="text-rose-600 hover:text-rose-700"
                           onClick={() => void deleteWord(word)}
                           disabled={busy}

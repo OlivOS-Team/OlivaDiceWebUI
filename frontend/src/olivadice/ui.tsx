@@ -286,8 +286,8 @@ export function Select({
         onKeyDown={onKeyDown}
         className={
           `flex w-full items-center justify-between gap-2 rounded-lg border ` +
-          `bg-card px-3` +
-          `${height}` +
+          `bg-card px-3 ` +
+          `${height} ` +
           `text-left font-medium text-foreground outline-none transition-colors ` +
           `hover:bg-accent focus:ring-2 focus:ring-brand-300`
         }
