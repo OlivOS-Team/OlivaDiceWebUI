@@ -11,7 +11,7 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 201 100% 36%;       /* dark logo blue, readable with white text */
+    --primary: 201 100% 36%; /* dark logo blue, readable with white text */
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -23,7 +23,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 199 100% 46%;          /* logo blue #00a0e9 */
+    --ring: 199 100% 46%; /* logo blue #00a0e9 */
     --radius: 0.5rem;
   }
 
@@ -65,7 +65,9 @@
 
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: 'rlig' 1, 'calt' 1;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
   }
 
   /* Scrollbar styling */
@@ -92,9 +94,15 @@
    below 640px the table renders as stacked cards (one card per row,
    each cell a "label · value" line). No JS, no second render path. */
 @media (max-width: 639.9px) {
-  table.rt { display: block; }
-  table.rt thead { display: none; }
-  table.rt tbody { display: block; }
+  table.rt {
+    display: block;
+  }
+  table.rt thead {
+    display: none;
+  }
+  table.rt tbody {
+    display: block;
+  }
   table.rt tr {
     display: block;
     border: 1px solid hsl(var(--border));
@@ -106,17 +114,19 @@
   table.rt td {
     display: flex;
     align-items: center;
-    justify-content: flex-start;   /* 标签+内容都靠左，别左右两端拉扯 */
+    justify-content: flex-start; /* 标签+内容都靠左，别左右两端拉扯 */
     gap: 0.5rem;
     width: 100%;
-    max-width: none;               /* 覆盖表格模式的 max-w-0 截断列 */
+    max-width: none; /* 覆盖表格模式的 max-w-0 截断列 */
     padding: 0.3rem 0.75rem;
     text-align: left;
     white-space: normal;
     min-width: 0;
     overflow: hidden;
   }
-  table.rt td > * { min-width: 0; }
+  table.rt td > * {
+    min-width: 0;
+  }
   table.rt td[data-label]::before {
     content: attr(data-label);
     flex-shrink: 0;
@@ -124,11 +134,19 @@
     color: hsl(var(--muted-foreground));
   }
   /* 无标签单元格＝操作按钮区，靠右 */
-  table.rt td:not([data-label]) { justify-content: flex-end; }
-  table.rt td:last-child { flex-wrap: wrap; }
+  table.rt td:not([data-label]) {
+    justify-content: flex-end;
+  }
+  table.rt td:last-child {
+    flex-wrap: wrap;
+  }
   table.rt td:last-child > .flex,
-  table.rt td:last-child > .inline-flex { flex-wrap: wrap; }
-  table.rt td:empty { display: none; }
+  table.rt td:last-child > .inline-flex {
+    flex-wrap: wrap;
+  }
+  table.rt td:empty {
+    display: none;
+  }
 }
 
 /* ── Global settings search target feedback ──────────────────── */
@@ -174,55 +192,96 @@
 }
 .login-orb-a {
   background: radial-gradient(circle at center, hsl(var(--primary) / 0.16) 0%, transparent 62%);
-  top: -18vmax; left: -12vmax;
+  top: -18vmax;
+  left: -12vmax;
   animation: login-drift-a 26s ease-in-out infinite alternate;
 }
 .login-orb-b {
   background: radial-gradient(circle at center, hsl(258 84% 58% / 0.12) 0%, transparent 62%);
-  bottom: -22vmax; right: -14vmax;
+  bottom: -22vmax;
+  right: -14vmax;
   animation: login-drift-b 32s ease-in-out infinite alternate;
 }
 @keyframes login-drift-a {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to   { transform: translate3d(9vmax, 6vmax, 0) scale(1.12); }
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(9vmax, 6vmax, 0) scale(1.12);
+  }
 }
 @keyframes login-drift-b {
-  from { transform: translate3d(0, 0, 0) scale(1.08); }
-  to   { transform: translate3d(-8vmax, -5vmax, 0) scale(1); }
+  from {
+    transform: translate3d(0, 0, 0) scale(1.08);
+  }
+  to {
+    transform: translate3d(-8vmax, -5vmax, 0) scale(1);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .login-orb-a, .login-orb-b { animation: none; }
+  .login-orb-a,
+  .login-orb-b {
+    animation: none;
+  }
 }
 
 /* Legacy page utilities are kept for the shared frontend. These dark-mode
    mappings let both the embedded and standalone builds use the same markup. */
-.dark .bg-white { background-color: hsl(var(--card)); }
-.dark .bg-white\/95 { background-color: hsl(var(--card) / 0.95); }
+.dark .bg-white {
+  background-color: hsl(var(--card));
+}
+.dark .bg-white\/95 {
+  background-color: hsl(var(--card) / 0.95);
+}
 .dark .bg-slate-50,
 .dark .bg-slate-50\/60,
 .dark .bg-slate-100,
-.dark .bg-slate-200 { background-color: hsl(var(--muted)); }
-.dark .hover\:bg-slate-50:hover { background-color: hsl(var(--muted)); }
+.dark .bg-slate-200 {
+  background-color: hsl(var(--muted));
+}
+.dark .hover\:bg-slate-50:hover {
+  background-color: hsl(var(--muted));
+}
 .dark .text-slate-900,
 .dark .text-slate-800,
-.dark .text-slate-700 { color: hsl(var(--foreground)); }
+.dark .text-slate-700 {
+  color: hsl(var(--foreground));
+}
 .dark .text-slate-600,
 .dark .text-slate-500,
 .dark .text-slate-400,
-.dark .text-slate-300 { color: hsl(var(--muted-foreground)); }
-.dark .hover\:text-slate-900:hover { color: hsl(var(--foreground)); }
+.dark .text-slate-300 {
+  color: hsl(var(--muted-foreground));
+}
+.dark .hover\:text-slate-900:hover {
+  color: hsl(var(--foreground));
+}
 .dark .border-slate-100,
-.dark .border-slate-200 { border-color: hsl(var(--border)); }
+.dark .border-slate-200 {
+  border-color: hsl(var(--border));
+}
 .dark .bg-brand-50,
-.dark .bg-brand-50\/60 { background-color: rgb(8 47 73 / 0.55); }
+.dark .bg-brand-50\/60 {
+  background-color: rgb(8 47 73 / 0.55);
+}
 .dark .text-brand-900,
 .dark .text-brand-800,
-.dark .text-brand-700 { color: rgb(186 230 253); }
+.dark .text-brand-700 {
+  color: rgb(186 230 253);
+}
 .dark .border-brand-100,
-.dark .border-brand-200 { border-color: rgb(7 89 133 / 0.75); }
-.dark .bg-amber-50 { background-color: rgb(69 26 3 / 0.55); }
-.dark .text-amber-900 { color: rgb(253 230 138); }
-.dark .border-amber-200 { border-color: rgb(146 64 14); }
+.dark .border-brand-200 {
+  border-color: rgb(7 89 133 / 0.75);
+}
+.dark .bg-amber-50 {
+  background-color: rgb(69 26 3 / 0.55);
+}
+.dark .text-amber-900 {
+  color: rgb(253 230 138);
+}
+.dark .border-amber-200 {
+  border-color: rgb(146 64 14);
+}
 
 /* Syntax overlay. Highlight colour only — never font-weight/letter-spacing —
    so the replica stays the same width as the textarea and the caret lines up.
@@ -240,7 +299,8 @@
   border-width: 1px;
   border-style: solid;
   border-radius: calc(var(--radius) - 2px);
-  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family:
+    'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.875rem;
   font-weight: 400;
   font-kerning: none;
@@ -299,58 +359,134 @@
   color: rgb(148 163 184);
   -webkit-text-fill-color: rgb(148 163 184);
 }
-.chance-highlight .cc-text { color: hsl(var(--foreground)); }
+.chance-highlight .cc-text {
+  color: hsl(var(--foreground));
+}
 .chance-highlight .cc-d0.cc-bracket,
-.chance-highlight .cc-d0.cc-func { color: #0284c7; }
+.chance-highlight .cc-d0.cc-func {
+  color: #0284c7;
+}
 .chance-highlight .cc-d1.cc-bracket,
-.chance-highlight .cc-d1.cc-func { color: #7c3aed; }
+.chance-highlight .cc-d1.cc-func {
+  color: #7c3aed;
+}
 .chance-highlight .cc-d2.cc-bracket,
-.chance-highlight .cc-d2.cc-func { color: #0f766e; }
+.chance-highlight .cc-d2.cc-func {
+  color: #0f766e;
+}
 .chance-highlight .cc-d3.cc-bracket,
-.chance-highlight .cc-d3.cc-func { color: #c2410c; }
-.chance-highlight .cc-sep { color: #d97706; }
-.chance-highlight .cc-split { color: #e11d48; }
-.chance-highlight .cc-escape { color: #64748b; }
-.chance-highlight .cc-code { color: #0891b2; }
-.chance-highlight .cc-open { color: #94a3b8; }
+.chance-highlight .cc-d3.cc-func {
+  color: #c2410c;
+}
+.chance-highlight .cc-sep {
+  color: #d97706;
+}
+.chance-highlight .cc-split {
+  color: #e11d48;
+}
+.chance-highlight .cc-escape {
+  color: #64748b;
+}
+.chance-highlight .cc-code {
+  color: #0891b2;
+}
+.chance-highlight .cc-open {
+  color: #94a3b8;
+}
 .dark .chance-highlight .cc-d0.cc-bracket,
-.dark .chance-highlight .cc-d0.cc-func { color: #7dd3fc; }
+.dark .chance-highlight .cc-d0.cc-func {
+  color: #7dd3fc;
+}
 .dark .chance-highlight .cc-d1.cc-bracket,
-.dark .chance-highlight .cc-d1.cc-func { color: #c4b5fd; }
+.dark .chance-highlight .cc-d1.cc-func {
+  color: #c4b5fd;
+}
 .dark .chance-highlight .cc-d2.cc-bracket,
-.dark .chance-highlight .cc-d2.cc-func { color: #5eead4; }
+.dark .chance-highlight .cc-d2.cc-func {
+  color: #5eead4;
+}
 .dark .chance-highlight .cc-d3.cc-bracket,
-.dark .chance-highlight .cc-d3.cc-func { color: #fdba74; }
-.dark .chance-highlight .cc-sep { color: #fbbf24; }
-.dark .chance-highlight .cc-split { color: #fb7185; }
-.dark .chance-highlight .cc-escape { color: #94a3b8; }
-.dark .chance-highlight .cc-code { color: #67e8f9; }
-.dark .chance-highlight .cc-open { color: #64748b; }
+.dark .chance-highlight .cc-d3.cc-func {
+  color: #fdba74;
+}
+.dark .chance-highlight .cc-sep {
+  color: #fbbf24;
+}
+.dark .chance-highlight .cc-split {
+  color: #fb7185;
+}
+.dark .chance-highlight .cc-escape {
+  color: #94a3b8;
+}
+.dark .chance-highlight .cc-code {
+  color: #67e8f9;
+}
+.dark .chance-highlight .cc-open {
+  color: #64748b;
+}
 
-.reply-highlight .rv-text { color: hsl(var(--foreground)); }
+.reply-highlight .rv-text {
+  color: hsl(var(--foreground));
+}
 .reply-highlight .rv-d0.rv-brace,
-.reply-highlight .rv-d0.rv-var { color: #0284c7; }
+.reply-highlight .rv-d0.rv-var {
+  color: #0284c7;
+}
 .reply-highlight .rv-d1.rv-brace,
-.reply-highlight .rv-d1.rv-var { color: #7c3aed; }
+.reply-highlight .rv-d1.rv-var {
+  color: #7c3aed;
+}
 .reply-highlight .rv-d2.rv-brace,
-.reply-highlight .rv-d2.rv-var { color: #0f766e; }
+.reply-highlight .rv-d2.rv-var {
+  color: #0f766e;
+}
 .reply-highlight .rv-d3.rv-brace,
-.reply-highlight .rv-d3.rv-var { color: #c2410c; }
-.reply-highlight .rv-special { color: #d97706; }
-.reply-highlight .rv-escape { color: #64748b; }
-.reply-highlight .rv-deck { color: #0f766e; }
-.reply-highlight .rv-split { color: #e11d48; }
-.reply-highlight .rv-open { color: #94a3b8; }
+.reply-highlight .rv-d3.rv-var {
+  color: #c2410c;
+}
+.reply-highlight .rv-special {
+  color: #d97706;
+}
+.reply-highlight .rv-escape {
+  color: #64748b;
+}
+.reply-highlight .rv-deck {
+  color: #0f766e;
+}
+.reply-highlight .rv-split {
+  color: #e11d48;
+}
+.reply-highlight .rv-open {
+  color: #94a3b8;
+}
 .dark .reply-highlight .rv-d0.rv-brace,
-.dark .reply-highlight .rv-d0.rv-var { color: #7dd3fc; }
+.dark .reply-highlight .rv-d0.rv-var {
+  color: #7dd3fc;
+}
 .dark .reply-highlight .rv-d1.rv-brace,
-.dark .reply-highlight .rv-d1.rv-var { color: #c4b5fd; }
+.dark .reply-highlight .rv-d1.rv-var {
+  color: #c4b5fd;
+}
 .dark .reply-highlight .rv-d2.rv-brace,
-.dark .reply-highlight .rv-d2.rv-var { color: #5eead4; }
+.dark .reply-highlight .rv-d2.rv-var {
+  color: #5eead4;
+}
 .dark .reply-highlight .rv-d3.rv-brace,
-.dark .reply-highlight .rv-d3.rv-var { color: #fdba74; }
-.dark .reply-highlight .rv-special { color: #fbbf24; }
-.dark .reply-highlight .rv-escape { color: #94a3b8; }
-.dark .reply-highlight .rv-deck { color: #5eead4; }
-.dark .reply-highlight .rv-split { color: #fb7185; }
-.dark .reply-highlight .rv-open { color: #64748b; }
+.dark .reply-highlight .rv-d3.rv-var {
+  color: #fdba74;
+}
+.dark .reply-highlight .rv-special {
+  color: #fbbf24;
+}
+.dark .reply-highlight .rv-escape {
+  color: #94a3b8;
+}
+.dark .reply-highlight .rv-deck {
+  color: #5eead4;
+}
+.dark .reply-highlight .rv-split {
+  color: #fb7185;
+}
+.dark .reply-highlight .rv-open {
+  color: #64748b;
+}

@@ -25,6 +25,8 @@ jobs:
           python-version: '3.11'
       - name: Install frontend dependencies
         run: npm ci --prefix frontend
+      - name: Lint frontend
+        run: npm run lint --prefix frontend
       - name: Build both frontends
         run: npm run build --prefix frontend
       - name: Test both plugins

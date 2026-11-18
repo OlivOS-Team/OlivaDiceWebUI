@@ -9,7 +9,8 @@ import { SyntaxEditor } from './syntaxEditor';
  * {OR}, escape, or deck name. `|` is a random-reply split.
  */
 
-export type ReplyTokenKind = 'text' | 'brace' | 'var' | 'special' | 'escape' | 'deck' | 'split' | 'open';
+export type ReplyTokenKind =
+  'text' | 'brace' | 'var' | 'special' | 'escape' | 'deck' | 'split' | 'open';
 export type ReplyToken = { k: ReplyTokenKind; v: string; d: number };
 
 const SPECIALS = new Set(['DEVIDE', 'OR']);
@@ -83,12 +84,21 @@ type EditorProps = {
   placeholder?: string;
 };
 
-export function ReplyEditor({ value, onChange, className, maxLength, id, disabled, placeholder }: EditorProps) {
+export function ReplyEditor({
+  value,
+  onChange,
+  className,
+  maxLength,
+  id,
+  disabled,
+  placeholder,
+}: EditorProps) {
   const tokens = React.useMemo(
-    () => tokenizeReply(value).map(token => ({
-      className: `rv-token rv-${token.k} rv-d${token.d % 4}`,
-      v: token.v,
-    })),
+    () =>
+      tokenizeReply(value).map(token => ({
+        className: `rv-token rv-${token.k} rv-d${token.d % 4}`,
+        v: token.v,
+      })),
     [value],
   );
   return (
