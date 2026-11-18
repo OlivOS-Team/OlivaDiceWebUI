@@ -306,8 +306,16 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
 
   // Same entry as the desktop ChanceCustom GUI: 「程心使用教学」 opens the official tutorial.
   const tutorialLink = (
-    <Button asChild size="sm" variant="outline">
-      <a href="https://forum.olivos.run/p/1" target="_blank" rel="noreferrer noopener">
+    <Button
+      asChild
+      size="sm"
+      variant="outline"
+    >
+      <a
+        href="https://forum.olivos.run/p/1"
+        target="_blank"
+        rel="noreferrer noopener"
+      >
         <BookOpen className="mr-2 h-4 w-4" />
         程心使用教学
       </a>
@@ -339,7 +347,10 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
           description={`已检测到 ChanceCustom ${state.version || ''}`}
           action={tutorialLink}
         />
-        <Empty title="当前配置只能读取" detail={state.reason} />
+        <Empty
+          title="当前配置只能读取"
+          detail={state.reason}
+        />
       </>
     );
 
@@ -376,7 +387,12 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
         action={
           <div className="flex flex-wrap gap-2">
             {tutorialLink}
-            <Button size="sm" variant="outline" onClick={() => void refresh()} disabled={busy}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void refresh()}
+              disabled={busy}
+            >
               <RotateCcw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               重新读取
             </Button>
@@ -406,7 +422,11 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
       {tab === 'rules' && (
         <>
           <div className="mb-4 flex justify-end">
-            <Button size="sm" onClick={() => void create()} disabled={busy}>
+            <Button
+              size="sm"
+              onClick={() => void create()}
+              disabled={busy}
+            >
               <Plus className="mr-2 h-4 w-4" />
               新增规则
             </Button>
@@ -426,7 +446,10 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
                   {filtered.length} / {state.rules.length} 条规则
                 </div>
               </div>
-              <div ref={listRef} className="max-h-[650px] flex-1 overflow-y-auto p-2">
+              <div
+                ref={listRef}
+                className="max-h-[650px] flex-1 overflow-y-auto p-2"
+              >
                 {pageItems.length ? (
                   pageItems.map(item => (
                     <button
@@ -621,7 +644,10 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
                           </Button>
                         )}
                       </div>
-                      <Button onClick={() => void saveRule()} disabled={busy || !ruleDirty}>
+                      <Button
+                        onClick={() => void saveRule()}
+                        disabled={busy || !ruleDirty}
+                      >
                         <Save className="mr-2 h-4 w-4" />
                         保存规则
                       </Button>
@@ -641,7 +667,10 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
           <CardContent className="p-5 md:p-7">
             <div className="grid gap-5 lg:grid-cols-2">
               {state.defaults.map(item => (
-                <label key={item.key} className="text-sm font-medium">
+                <label
+                  key={item.key}
+                  className="text-sm font-medium"
+                >
                   {item.label}
                   <ChanceEditor
                     className="min-h-24"
@@ -660,7 +689,10 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
               ))}
             </div>
             <div className="mt-6 flex justify-end">
-              <Button disabled={busy || !defaultsDirty} onClick={() => void saveDefaults()}>
+              <Button
+                disabled={busy || !defaultsDirty}
+                onClick={() => void saveDefaults()}
+              >
                 <Save className="mr-2 h-4 w-4" />
                 保存默认回复
               </Button>
@@ -679,7 +711,11 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
               className="hidden"
               onChange={event => void uploadPackage(event.target.files?.[0])}
             />
-            <Button size="sm" onClick={() => fileRef.current?.click()} disabled={busy}>
+            <Button
+              size="sm"
+              onClick={() => fileRef.current?.click()}
+              disabled={busy}
+            >
               <Upload className="mr-2 h-4 w-4" />
               安装 CCPK
             </Button>
@@ -687,7 +723,10 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
           {state.packages.length ? (
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {state.packages.map(item => (
-                <Card key={item.name} className="border-slate-200 shadow-sm">
+                <Card
+                  key={item.name}
+                  className="border-slate-200 shadow-sm"
+                >
                   <CardContent className="p-5">
                     <div className="flex items-start gap-3">
                       <Package className="mt-0.5 h-5 w-5 text-brand-600" />
@@ -737,7 +776,10 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
               ))}
             </div>
           ) : (
-            <Empty title="当前范围没有已安装的回复包" detail="可以上传数据版本 2 的 CCPK。" />
+            <Empty
+              title="当前范围没有已安装的回复包"
+              detail="可以上传数据版本 2 的 CCPK。"
+            />
           )}
           <Card className="border-slate-200 shadow-sm">
             <CardContent className="p-5 md:p-7">
@@ -812,7 +854,11 @@ export function ChanceCustomPage({ token, bot, notify, onDirtyChange }: Props) {
                 >
                   全选筛选结果
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => setExportKeys([])}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setExportKeys([])}
+                >
                   清空
                 </Button>
               </div>

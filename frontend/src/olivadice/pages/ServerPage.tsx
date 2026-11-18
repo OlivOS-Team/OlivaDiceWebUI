@@ -72,7 +72,10 @@ export function ServerPage({ token, notify, onDirtyChange }: Props) {
   const field = (key: keyof Network, title: string, hint: string, control: React.ReactNode) => (
     <div>
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <label htmlFor={`server-${key}`} className="text-sm font-medium">
+        <label
+          htmlFor={`server-${key}`}
+          className="text-sm font-medium"
+        >
           {title}
         </label>
         {state?.environmentOverrides[key] && (
@@ -145,7 +148,10 @@ export function ServerPage({ token, notify, onDirtyChange }: Props) {
                   />,
                 )}
                 <div className="flex justify-end border-t pt-5">
-                  <Button disabled={busy || !changed} onClick={() => void save()}>
+                  <Button
+                    disabled={busy || !changed}
+                    onClick={() => void save()}
+                  >
                     <Save className="mr-2 h-4 w-4" />
                     保存服务设置
                   </Button>

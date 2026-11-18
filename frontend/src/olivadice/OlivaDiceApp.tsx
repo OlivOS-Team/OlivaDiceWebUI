@@ -293,7 +293,11 @@ function Dashboard({
               <p className="mt-1 text-xs text-brand-700">复制认证指令并发送给骰子。</p>
             </div>
             <div className="relative">
-              <Button size="sm" variant="outline" onClick={() => void copyMasterCommand()}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void copyMasterCommand()}
+              >
                 复制认证指令
               </Button>
               {copyFallback && (
@@ -351,7 +355,11 @@ function Dashboard({
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map(item => (
-          <button key={item.label} onClick={() => navigate(item.action)} className="text-left">
+          <button
+            key={item.label}
+            onClick={() => navigate(item.action)}
+            className="text-left"
+          >
             <Card
               className={
                 `h-full border-slate-200 shadow-sm transition-all ` +
@@ -413,10 +421,18 @@ function Dashboard({
                   </span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" onClick={() => navigate('settings')}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate('settings')}
+                  >
                     核心配置
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => navigate('accounts')}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate('accounts')}
+                  >
                     骰主权限
                   </Button>
                 </div>
@@ -434,7 +450,12 @@ function Dashboard({
             </div>
             <div className="mt-5 text-3xl font-semibold">{loading ? '—' : stats.decks}</div>
             <p className="mt-1 text-sm text-slate-500">当前账号已加载的分组数量</p>
-            <Button className="mt-5" size="sm" variant="outline" onClick={() => navigate('decks')}>
+            <Button
+              className="mt-5"
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('decks')}
+            >
               查看牌堆 <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </CardContent>
@@ -684,7 +705,11 @@ export function OlivaDiceApp() {
             'mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-4 ' + 'py-10 md:px-8'
           }
         >
-          <Notice message={notice.message} error={notice.error} onClose={() => notify('')} />
+          <Notice
+            message={notice.message}
+            error={notice.error}
+            onClose={() => notify('')}
+          />
           {preview && (
             <div
               className={
@@ -778,7 +803,10 @@ export function OlivaDiceApp() {
                         disabled={preview}
                         required
                       />
-                      <Button className="w-full" disabled={loading || preview}>
+                      <Button
+                        className="w-full"
+                        disabled={loading || preview}
+                      >
                         {loading ? '正在连接…' : '连接管理服务'}{' '}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
@@ -861,11 +889,21 @@ export function OlivaDiceApp() {
           <PanelLeft className="h-4 w-4" />
         )}
       </Button>
-      <Button size="icon" variant="ghost" onClick={() => void connect(token)} title="刷新账号列表">
+      <Button
+        size="icon"
+        variant="ghost"
+        onClick={() => void connect(token)}
+        title="刷新账号列表"
+      >
         <RotateCcw className="h-4 w-4" />
       </Button>
       {standalone && (
-        <Button size="icon" variant="ghost" onClick={() => void logout()} title="退出管理">
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => void logout()}
+          title="退出管理"
+        >
           <LogOut className="h-4 w-4" />
         </Button>
       )}
@@ -902,7 +940,11 @@ export function OlivaDiceApp() {
         {scopeBadge}
         {connected && accountSelect(true)}
       </div>
-      <Notice message={notice.message} error={notice.error} onClose={() => notify('')} />
+      <Notice
+        message={notice.message}
+        error={notice.error}
+        onClose={() => notify('')}
+      />
       {view === 'dashboard' && (
         <Dashboard
           token={token}
@@ -921,19 +963,41 @@ export function OlivaDiceApp() {
           notify={notify}
         />
       )}
-      {view === 'settings' && <SettingsPage token={token} bot={bot} notify={notify} />}
+      {view === 'settings' && (
+        <SettingsPage
+          token={token}
+          bot={bot}
+          notify={notify}
+        />
+      )}
       {view === 'replies' &&
         (bot === 'unity' ? (
-          <SelectAccount accounts={accounts} selectBot={selectBot} />
+          <SelectAccount
+            accounts={accounts}
+            selectBot={selectBot}
+          />
         ) : (
-          <RepliesPage token={token} bot={bot} notify={notify} onDirtyChange={onDirtyChange} />
+          <RepliesPage
+            token={token}
+            bot={bot}
+            notify={notify}
+            onDirtyChange={onDirtyChange}
+          />
         ))}
       {view === 'chance-custom' && (
-        <ChanceCustomPage token={token} bot={bot} notify={notify} onDirtyChange={onDirtyChange} />
+        <ChanceCustomPage
+          token={token}
+          bot={bot}
+          notify={notify}
+          onDirtyChange={onDirtyChange}
+        />
       )}
       {view === 'help' &&
         (bot === 'unity' ? (
-          <SelectAccount accounts={accounts} selectBot={selectBot} />
+          <SelectAccount
+            accounts={accounts}
+            selectBot={selectBot}
+          />
         ) : (
           <HelpPage
             token={token}
@@ -947,11 +1011,32 @@ export function OlivaDiceApp() {
             }
           />
         ))}
-      {view === 'censor' && <CensorPage token={token} bot={bot} notify={notify} />}
-      {view === 'decks' && <DecksPage token={token} bot={bot} notify={notify} />}
-      {view === 'backup' && <BackupPage token={token} notify={notify} />}
+      {view === 'censor' && (
+        <CensorPage
+          token={token}
+          bot={bot}
+          notify={notify}
+        />
+      )}
+      {view === 'decks' && (
+        <DecksPage
+          token={token}
+          bot={bot}
+          notify={notify}
+        />
+      )}
+      {view === 'backup' && (
+        <BackupPage
+          token={token}
+          notify={notify}
+        />
+      )}
       {standalone && view === 'server' && (
-        <ServerPage token={token} notify={notify} onDirtyChange={onDirtyChange} />
+        <ServerPage
+          token={token}
+          notify={notify}
+          onDirtyChange={onDirtyChange}
+        />
       )}
     </main>
   );
@@ -1136,7 +1221,11 @@ function SelectAccount({
         {bots.length ? (
           <div className="mt-5 flex flex-wrap gap-2">
             {bots.map(item => (
-              <Button key={item.hash} variant="outline" onClick={() => void selectBot(item.hash)}>
+              <Button
+                key={item.hash}
+                variant="outline"
+                onClick={() => void selectBot(item.hash)}
+              >
                 {item.label}
               </Button>
             ))}

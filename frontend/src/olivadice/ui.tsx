@@ -53,7 +53,10 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
               'w-full max-w-md rounded-2xl border bg-card p-6 text-card-foreground ' + 'shadow-2xl'
             }
           >
-            <h2 id="confirm-title" className="text-lg font-semibold">
+            <h2
+              id="confirm-title"
+              className="text-lg font-semibold"
+            >
               {request.title || '确认操作'}
             </h2>
             <p
@@ -63,7 +66,10 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
               {request.message}
             </p>
             <div className="mt-6 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => close(false)}>
+              <Button
+                variant="outline"
+                onClick={() => close(false)}
+              >
                 取消
               </Button>
               <Button
@@ -159,7 +165,10 @@ export function Notice({
         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
       )}
       <span className="flex-1">{message}</span>
-      <button onClick={onClose} className="text-xs underline">
+      <button
+        onClick={onClose}
+        className="text-xs underline"
+      >
         关闭
       </button>
     </div>
@@ -273,7 +282,10 @@ export function Select({
   };
 
   return (
-    <div ref={rootRef} className={`relative ${className}`}>
+    <div
+      ref={rootRef}
+      className={`relative ${className}`}
+    >
       <button
         type="button"
         aria-haspopup="listbox"

@@ -215,7 +215,12 @@ export function DecksPage({ token, bot, notify }: Props) {
         title="牌堆管理"
         description="管理运行中的牌堆、本地文件与 Extiverse 牌堆市场。"
         action={
-          <Button size="sm" variant="outline" onClick={() => void reload()} disabled={busy}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void reload()}
+            disabled={busy}
+          >
             <RotateCcw className={`mr-2 h-4 w-4 ${busy ? 'animate-spin' : ''}`} />
             重新加载牌堆
           </Button>
@@ -269,7 +274,11 @@ export function DecksPage({ token, bot, notify }: Props) {
         ) : (
           <>
             <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_auto]">
-              <SearchField value={query} onChange={setQuery} placeholder="搜索牌堆或分组" />
+              <SearchField
+                value={query}
+                onChange={setQuery}
+                placeholder="搜索牌堆或分组"
+              />
               <div
                 className={
                   'flex items-center rounded-lg border bg-white px-4 text-sm ' + 'text-slate-600'
@@ -385,11 +394,19 @@ export function DecksPage({ token, bot, notify }: Props) {
                   { value: 'excel', label: 'Excel' },
                 ]}
               />
-              <Button size="sm" onClick={() => fileRef.current?.click()} disabled={busy}>
+              <Button
+                size="sm"
+                onClick={() => fileRef.current?.click()}
+                disabled={busy}
+              >
                 <Upload className="mr-2 h-4 w-4" />
                 安装本地牌堆
               </Button>
-              <Button size="sm" variant="outline" onClick={() => void loadFiles(scope)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void loadFiles(scope)}
+              >
                 <RotateCcw className="mr-2 h-4 w-4" />
                 刷新文件列表
               </Button>
@@ -397,7 +414,10 @@ export function DecksPage({ token, bot, notify }: Props) {
             {files.length ? (
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {files.map(file => (
-                  <Card key={`${file.kind}:${file.name}`} className="border-slate-200 shadow-sm">
+                  <Card
+                    key={`${file.kind}:${file.name}`}
+                    className="border-slate-200 shadow-sm"
+                  >
                     <CardContent className="flex items-start gap-3 p-4">
                       <Files className="mt-1 h-5 w-5 text-brand-600" />
                       <div className="min-w-0 flex-1">
@@ -431,7 +451,10 @@ export function DecksPage({ token, bot, notify }: Props) {
                 ))}
               </div>
             ) : (
-              <Empty title="此范围没有本地牌堆文件" detail="可以安装 JSON、YAML 或 Excel 牌堆。" />
+              <Empty
+                title="此范围没有本地牌堆文件"
+                detail="可以安装 JSON、YAML 或 Excel 牌堆。"
+              />
             )}
           </>
         ))}
@@ -439,7 +462,10 @@ export function DecksPage({ token, bot, notify }: Props) {
         (loading ? (
           <Busy />
         ) : !market?.available ? (
-          <Empty title="未加载 OlivaDiceOdyssey" detail="牌堆市场依赖 OlivaDiceOdyssey 插件。" />
+          <Empty
+            title="未加载 OlivaDiceOdyssey"
+            detail="牌堆市场依赖 OlivaDiceOdyssey 插件。"
+          />
         ) : (
           <>
             <div className="mb-4 flex gap-2">
@@ -450,7 +476,10 @@ export function DecksPage({ token, bot, notify }: Props) {
                   placeholder="搜索牌堆名、作者或描述"
                 />
               </div>
-              <Button variant="outline" onClick={() => void loadMarket(true)}>
+              <Button
+                variant="outline"
+                onClick={() => void loadMarket(true)}
+              >
                 <RotateCcw className="mr-2 h-4 w-4" />
                 刷新市场
               </Button>
@@ -458,7 +487,10 @@ export function DecksPage({ token, bot, notify }: Props) {
             {marketFiltered.length ? (
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {marketFiltered.slice(0, 200).map(entry => (
-                  <Card key={`${entry.kind}:${entry.name}`} className="border-slate-200 shadow-sm">
+                  <Card
+                    key={`${entry.kind}:${entry.name}`}
+                    className="border-slate-200 shadow-sm"
+                  >
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">

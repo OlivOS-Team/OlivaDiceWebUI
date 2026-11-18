@@ -203,7 +203,10 @@ export function BackupPage({ token, notify }: Props) {
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="开始日期" reset={() => void resetKey('startDate')}>
+                <Field
+                  label="开始日期"
+                  reset={() => void resetKey('startDate')}
+                >
                   <Input
                     type="date"
                     value={draft.startDate}
@@ -212,7 +215,10 @@ export function BackupPage({ token, notify }: Props) {
                     }
                   />
                 </Field>
-                <Field label="执行时间" reset={() => void resetKey('backupTime')}>
+                <Field
+                  label="执行时间"
+                  reset={() => void resetKey('backupTime')}
+                >
                   <Input
                     type="time"
                     step="1"
@@ -228,7 +234,10 @@ export function BackupPage({ token, notify }: Props) {
                     }
                   />
                 </Field>
-                <Field label="间隔天数" reset={() => void resetKey('passDay')}>
+                <Field
+                  label="间隔天数"
+                  reset={() => void resetKey('passDay')}
+                >
                   <Input
                     type="number"
                     min={1}
@@ -239,7 +248,10 @@ export function BackupPage({ token, notify }: Props) {
                     }
                   />
                 </Field>
-                <Field label="最多保留份数" reset={() => void resetKey('maxBackupCount')}>
+                <Field
+                  label="最多保留份数"
+                  reset={() => void resetKey('maxBackupCount')}
+                >
                   <Input
                     type="number"
                     min={1}
@@ -285,7 +297,12 @@ function Field({
     <div>
       <div className="mb-2 flex items-center justify-between">
         <span className="text-sm font-medium">{label}</span>
-        <Button size="icon" variant="ghost" title={`恢复${label}默认值`} onClick={reset}>
+        <Button
+          size="icon"
+          variant="ghost"
+          title={`恢复${label}默认值`}
+          onClick={reset}
+        >
           <RotateCcw className="h-3.5 w-3.5" />
         </Button>
       </div>

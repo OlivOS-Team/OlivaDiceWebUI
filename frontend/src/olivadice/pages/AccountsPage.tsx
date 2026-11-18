@@ -239,7 +239,10 @@ export function AccountsPage({ token, bot, accounts, selectBot, notify }: Props)
                 </Card>
               ))
           ) : (
-            <Empty title="OlivOS 当前没有机器人账号" detail="请先在 OlivOS 中配置并启动账号。" />
+            <Empty
+              title="OlivOS 当前没有机器人账号"
+              detail="请先在 OlivOS 中配置并启动账号。"
+            />
           )}
         </div>
         <Card className="h-fit border-slate-200 shadow-sm">
@@ -304,7 +307,10 @@ export function AccountsPage({ token, bot, accounts, selectBot, notify }: Props)
                       </div>
                     ))
                   ) : (
-                    <Empty title="暂无骰主" detail="输入用户 ID 后添加。" />
+                    <Empty
+                      title="暂无骰主"
+                      detail="输入用户 ID 后添加。"
+                    />
                   )}
                 </div>
               </>
@@ -360,12 +366,18 @@ export function AccountsPage({ token, bot, accounts, selectBot, notify }: Props)
                         `py-3 text-sm dark:border-slate-700 dark:bg-slate-800/60`
                       }
                     >
-                      <span className="font-medium" title={item.master}>
+                      <span
+                        className="font-medium"
+                        title={item.master}
+                      >
                         {relationLabel(item.master, item.masterOnline)}
                       </span>
                       {!item.masterOnline && <OfflineBadge />}
                       <ArrowRelation />
-                      <span className="font-medium" title={item.slave}>
+                      <span
+                        className="font-medium"
+                        title={item.slave}
+                      >
                         {relationLabel(item.slave, item.slaveOnline)}
                       </span>
                       {!item.slaveOnline && <OfflineBadge />}

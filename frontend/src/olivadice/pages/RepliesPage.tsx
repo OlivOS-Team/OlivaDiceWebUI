@@ -283,7 +283,12 @@ export function RepliesPage({ token, bot, notify, onDirtyChange }: Props) {
           <Upload className="mr-2 h-4 w-4" />
           导入回复
         </Button>
-        <Button size="sm" variant="outline" onClick={() => void exportJson()} disabled={busy}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void exportJson()}
+          disabled={busy}
+        >
           <Download className="mr-2 h-4 w-4" />
           导出回复
         </Button>
@@ -298,7 +303,11 @@ export function RepliesPage({ token, bot, notify, onDirtyChange }: Props) {
           <RotateCcw className="mr-2 h-4 w-4" />
           从磁盘刷新
         </Button>
-        <Button size="sm" variant="outline" onClick={() => setModulesOpen(current => !current)}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setModulesOpen(current => !current)}
+        >
           <Settings2 className="mr-2 h-4 w-4" />
           恢复模块
         </Button>
@@ -313,7 +322,10 @@ export function RepliesPage({ token, bot, notify, onDirtyChange }: Props) {
         >
           恢复模块默认
         </Button>
-        <Button size="sm" onClick={() => void create()}>
+        <Button
+          size="sm"
+          onClick={() => void create()}
+        >
           <Plus className="mr-2 h-4 w-4" />
           新增回复
         </Button>
@@ -386,7 +398,10 @@ export function RepliesPage({ token, bot, notify, onDirtyChange }: Props) {
                 </div>
               </div>
             </div>
-            <div ref={listRef} className="max-h-[620px] flex-1 overflow-y-auto p-2">
+            <div
+              ref={listRef}
+              className="max-h-[620px] flex-1 overflow-y-auto p-2"
+            >
               {pageItems.length ? (
                 pageItems.map(item => (
                   <button
@@ -503,7 +518,10 @@ export function RepliesPage({ token, bot, notify, onDirtyChange }: Props) {
                     </span>
                   </div>
                   <div className="mt-6">
-                    <label htmlFor="reply-content" className="mb-2 block text-sm font-medium">
+                    <label
+                      htmlFor="reply-content"
+                      className="mb-2 block text-sm font-medium"
+                    >
                       回复内容
                     </label>
                     <ReplyEditor
@@ -536,7 +554,11 @@ export function RepliesPage({ token, bot, notify, onDirtyChange }: Props) {
                     </div>
                     <div className="flex gap-2">
                       {active?.default !== null && active?.modified && !creating && (
-                        <Button variant="outline" onClick={() => void resetOne()} disabled={busy}>
+                        <Button
+                          variant="outline"
+                          onClick={() => void resetOne()}
+                          disabled={busy}
+                        >
                           <RotateCcw className="mr-2 h-4 w-4" />
                           恢复默认
                         </Button>

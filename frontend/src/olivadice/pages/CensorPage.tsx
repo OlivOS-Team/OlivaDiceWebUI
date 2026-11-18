@@ -286,7 +286,11 @@ export function CensorPage({ token, bot, notify }: Props) {
 
   return (
     <>
-      <SectionTitle eyebrow="SENSITIVE WORDS" title="敏感词管理" description={scopeHint} />
+      <SectionTitle
+        eyebrow="SENSITIVE WORDS"
+        title="敏感词管理"
+        description={scopeHint}
+      />
       <div className="mb-5 flex flex-wrap gap-2">
         <input
           ref={inputRef}
@@ -313,7 +317,12 @@ export function CensorPage({ token, bot, notify }: Props) {
           <Download className="mr-2 h-4 w-4" />
           导出词条
         </Button>
-        <Button size="sm" variant="outline" onClick={() => void reloadFromDisk()} disabled={busy}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void reloadFromDisk()}
+          disabled={busy}
+        >
           <RotateCcw className="mr-2 h-4 w-4" />
           从磁盘刷新
         </Button>
@@ -451,7 +460,10 @@ export function CensorPage({ token, bot, notify }: Props) {
                       <span className="text-sm text-slate-500">
                         待添加 {pendingCount(draft)} 条
                       </span>
-                      <Button onClick={() => void addWords()} disabled={busy || !draft.trim()}>
+                      <Button
+                        onClick={() => void addWords()}
+                        disabled={busy || !draft.trim()}
+                      >
                         <Plus className="mr-2 h-4 w-4" />
                         添加这些词
                       </Button>
@@ -604,10 +616,17 @@ export function CensorPage({ token, bot, notify }: Props) {
               onChange={event => setEditDraft(event.target.value)}
             />
             <div className="mt-5 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setEditing('')} disabled={busy}>
+              <Button
+                variant="outline"
+                onClick={() => setEditing('')}
+                disabled={busy}
+              >
                 取消
               </Button>
-              <Button onClick={() => void saveEdit()} disabled={busy || !editDraft.trim()}>
+              <Button
+                onClick={() => void saveEdit()}
+                disabled={busy || !editDraft.trim()}
+              >
                 保存
               </Button>
             </div>

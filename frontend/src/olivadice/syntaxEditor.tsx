@@ -39,9 +39,16 @@ export function SyntaxEditor({
   React.useLayoutEffect(sync);
   return (
     <div className={cn('syntax-stack', wrapperClassName)}>
-      <pre ref={preRef} aria-hidden className={cn('syntax-highlight', highlightClass)}>
+      <pre
+        ref={preRef}
+        aria-hidden
+        className={cn('syntax-highlight', highlightClass)}
+      >
         {tokens.map((token, index) => (
-          <span key={index} className={token.className}>
+          <span
+            key={index}
+            className={token.className}
+          >
             {token.v}
           </span>
         ))}

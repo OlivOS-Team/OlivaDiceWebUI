@@ -243,7 +243,12 @@ export function SettingsPage({ token, bot, notify }: Props) {
           <Upload className="mr-2 h-4 w-4" />
           导入配置
         </Button>
-        <Button size="sm" variant="outline" disabled={busy} onClick={exportFile}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={exportFile}
+        >
           <Download className="mr-2 h-4 w-4" />
           导出配置
         </Button>
@@ -271,7 +276,11 @@ export function SettingsPage({ token, bot, notify }: Props) {
         </Button>
       </div>
       <div className="mb-5 grid gap-3 md:grid-cols-[1fr_auto]">
-        <SearchField value={query} onChange={setQuery} placeholder="搜索设置名称或配置键" />
+        <SearchField
+          value={query}
+          onChange={setQuery}
+          placeholder="搜索设置名称或配置键"
+        />
         <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg border bg-white p-1">
           {sections.map(name => (
             <button
@@ -292,11 +301,17 @@ export function SettingsPage({ token, bot, notify }: Props) {
       {loading ? (
         <Busy />
       ) : !filtered.length ? (
-        <Empty title="没有匹配的配置项" detail="试试其他关键词或切换分类。" />
+        <Empty
+          title="没有匹配的配置项"
+          detail="试试其他关键词或切换分类。"
+        />
       ) : (
         <div className="space-y-4">
           {visibleSections.map(name => (
-            <Card key={name} className="border-slate-200 shadow-sm">
+            <Card
+              key={name}
+              className="border-slate-200 shadow-sm"
+            >
               <CardContent className="p-5">
                 <div className="mb-1 flex items-center gap-2 border-b border-slate-100 pb-3">
                   <SlidersHorizontal className="h-4 w-4 text-brand-600" />
@@ -327,7 +342,10 @@ export function SettingsPage({ token, bot, notify }: Props) {
             description="每项填写 JSON 数组；通知群和心跳地址各项由两个文本值组成。骰主列表在“账号与骰主”页面维护。"
           />
           {Object.entries(listLabels).map(([key, label]) => (
-            <Card key={key} className="border-slate-200 shadow-sm">
+            <Card
+              key={key}
+              className="border-slate-200 shadow-sm"
+            >
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>

@@ -212,11 +212,18 @@ export function HelpPage({
         description="维护 .help 可查询的词条；内置词条可覆盖，自定义词条可删除。导入导出只作用于当前账号。"
         action={
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => void load()}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void load()}
+            >
               <RotateCcw className="mr-2 h-4 w-4" />
               刷新
             </Button>
-            <Button size="sm" onClick={() => void create()}>
+            <Button
+              size="sm"
+              onClick={() => void create()}
+            >
               <Plus className="mr-2 h-4 w-4" />
               新增词条
             </Button>
@@ -262,7 +269,12 @@ export function HelpPage({
           <Upload className="mr-2 h-4 w-4" />
           导入词条
         </Button>
-        <Button size="sm" variant="outline" onClick={() => void exportJson()} disabled={busy}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void exportJson()}
+          disabled={busy}
+        >
           <Download className="mr-2 h-4 w-4" />
           导出词条
         </Button>
@@ -320,7 +332,10 @@ export function HelpPage({
                 </div>
               </div>
             </div>
-            <div ref={listRef} className="max-h-[620px] overflow-y-auto p-2">
+            <div
+              ref={listRef}
+              className="max-h-[620px] overflow-y-auto p-2"
+            >
               {filtered.length ? (
                 filtered.slice(0, 200).map(doc => (
                   <button
@@ -362,7 +377,10 @@ export function HelpPage({
                   </div>
                   {creating ? (
                     <div className="mt-5">
-                      <label htmlFor="help-key" className="mb-2 block text-sm font-medium">
+                      <label
+                        htmlFor="help-key"
+                        className="mb-2 block text-sm font-medium"
+                      >
                         词条名称
                       </label>
                       <Input
@@ -377,7 +395,10 @@ export function HelpPage({
                     <h3 className="mt-3 break-all text-xl font-semibold">{active?.key}</h3>
                   )}
                   <div className="mt-6">
-                    <label htmlFor="help-content" className="mb-2 block text-sm font-medium">
+                    <label
+                      htmlFor="help-content"
+                      className="mb-2 block text-sm font-medium"
+                    >
                       帮助内容
                     </label>
                     <Textarea
