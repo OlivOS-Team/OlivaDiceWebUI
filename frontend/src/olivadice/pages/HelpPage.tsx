@@ -7,6 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { api, botQuery, readJsonFile, saveJsonFile, type HelpDoc } from '../api';
 import { Busy, Empty, SearchField, SectionTitle, useConfirm } from '../ui';
 
+type StatusFilter = 'all' | 'modified' | 'unmodified' | 'custom';
+
 type Props = {
   token: string;
   bot: string;
@@ -29,7 +31,9 @@ export function HelpPage({
   const [docs, setDocs] = React.useState<HelpDoc[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [query, setQuery] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState<'all' | 'modified' | 'unmodified'>('all');
+  const [statusFilter, setStatusFilter] = React.useState<
+    'all' | 'modified' | 'unmodified' | 'custom'
+  >('all');
   const [selected, setSelected] = React.useState('');
   const [newKey, setNewKey] = React.useState('');
   const [creating, setCreating] = React.useState(false);
@@ -66,15 +70,20 @@ export function HelpPage({
     return () => onDirtyChange(false);
   }, [active, creating, newKey, draft, onDirtyChange]);
   const hasDraft = creating ? Boolean(newKey || draft) : Boolean(active && draft !== active.value);
+  const matchesStatus = (doc: HelpDoc, filter: StatusFilter) => {
+    if (filter === 'all') return true;
+    if (filter === 'custom') return doc.custom;
+    return doc.modified === (filter === 'modified');
+  };
   const filtered = docs.filter(
     doc =>
-      (statusFilter === 'all' || doc.modified === (statusFilter === 'modified')) &&
+      matchesStatus(doc, statusFilter) &&
       `${doc.key} ${doc.value}`.toLowerCase().includes(query.toLowerCase()),
   );
-  const updateFilter = (nextQuery: string, nextStatusFilter: 'all' | 'modified' | 'unmodified') => {
+  const updateFilter = (nextQuery: string, nextStatusFilter: StatusFilter) => {
     const next = docs.filter(
       doc =>
-        (nextStatusFilter === 'all' || doc.modified === (nextStatusFilter === 'modified')) &&
+        matchesStatus(doc, nextStatusFilter) &&
         `${doc.key} ${doc.value}`.toLowerCase().includes(nextQuery.toLowerCase()),
     );
     if (!creating && !hasDraft && !next.some(doc => doc.key === selected))
@@ -297,6 +306,16 @@ export function HelpPage({
                       }
                     />
                     仅看未修改
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      checked={statusFilter === 'custom'}
+                      onChange={event =>
+                        updateFilter(query, event.target.checked ? 'custom' : 'all')
+                      }
+                    />
+                    仅看自定义
                   </label>
                 </div>
               </div>

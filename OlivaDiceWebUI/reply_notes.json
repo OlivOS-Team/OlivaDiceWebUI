@@ -59,6 +59,8 @@
   "strHelpDocNotFound": "【.help】指令\n未找到条目时的回复内容",
   "strDrawTi": "【.ti】指令\n临时症状抽取的回复词",
   "strDrawLi": "【.li】指令\n总结症状抽取的回复词",
+  "strDrawSk": "【.sk】指令\n震骇反应抽取的回复词",
+  "strDrawPh": "【.ph】指令\n异变恐惧症状抽取的回复词",
   "strDrawName": "【.name】指令\n随机名称抽取的回复词",
   "strDrawDeck": "【.draw】指令\n牌堆抽取的回复词",
   "strDrawDeckHideShow": "【.drawh】指令\n牌堆暗抽取的回复词（群内）",

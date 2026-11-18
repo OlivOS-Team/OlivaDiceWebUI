@@ -116,17 +116,23 @@ export function CensorPage({ token, bot, notify }: Props) {
     }
     setBusy(true);
     try {
-      const result = await api<CensorState & { report: CensorReport }>('/api/censor', token, {
-        bot,
-        action: 'add',
-        words: lines,
-      });
-      setState(result);
-      setReport(result.report);
-      if (result.report.success) setDraft('');
+      const result = await api<{ value: CensorState & { report?: CensorReport } }>(
+        '/api/censor',
+        token,
+        { bot, action: 'add', words: lines },
+      );
+      const next = result.value;
+      setState(next);
+      const summary = next.report;
+      if (!summary) {
+        notify('添加请求已提交，请刷新确认');
+        return;
+      }
+      setReport(summary);
+      if (summary.success) setDraft('');
       notify(
-        `共 ${result.report.total} 条，成功 ${result.report.success}，失败 ${result.report.failed}`,
-        result.report.failed > 0 && result.report.success === 0,
+        `共 ${summary.total} 条，成功 ${summary.success}，失败 ${summary.failed}`,
+        summary.failed > 0 && summary.success === 0,
       );
     } catch (cause) {
       notify((cause as Error).message, true);
@@ -143,13 +149,13 @@ export function CensorPage({ token, bot, notify }: Props) {
     }
     setBusy(true);
     try {
-      const result = await api<CensorState>('/api/censor', token, {
+      const result = await api<{ value: CensorState }>('/api/censor', token, {
         bot,
         action: 'replace',
         word: editing,
         words: { value },
       });
-      setState(result);
+      setState(result.value);
       setEditing('');
       notify('敏感词已修改');
     } catch (cause) {
@@ -167,12 +173,12 @@ export function CensorPage({ token, bot, notify }: Props) {
     if (!ok) return;
     setBusy(true);
     try {
-      const result = await api<CensorState>('/api/censor', token, {
+      const result = await api<{ value: CensorState }>('/api/censor', token, {
         bot,
         action: 'delete',
         word,
       });
-      setState(result);
+      setState(result.value);
       notify('敏感词已删除');
     } catch (cause) {
       notify((cause as Error).message, true);
@@ -213,12 +219,15 @@ export function CensorPage({ token, bot, notify }: Props) {
       );
       if (!ok) return;
       setBusy(true);
-      const result = await api<CensorState>('/api/censor', token, {
+      const result = await api<{ value: CensorState }>('/api/censor', token, {
         bot,
         action: 'import',
         words: incoming,
       });
-      setState(result);
+      setState(result.value);
+      setReport(null);
+      setQuery('');
+      setPage(1);
       notify(`已导入 ${incoming.length} 条敏感词`);
     } catch (cause) {
       notify((cause as Error).message, true);
@@ -238,8 +247,13 @@ export function CensorPage({ token, bot, notify }: Props) {
     if (!ok) return;
     setBusy(true);
     try {
-      const result = await api<CensorState>('/api/censor', token, { bot, action: 'reload' });
-      setState(result);
+      const result = await api<{ value: CensorState }>('/api/censor', token, {
+        bot,
+        action: 'reload',
+      });
+      setState(result.value);
+      setReport(null);
+      setPage(1);
       notify('已从磁盘重新加载敏感词');
     } catch (cause) {
       notify((cause as Error).message, true);
@@ -256,8 +270,11 @@ export function CensorPage({ token, bot, notify }: Props) {
     if (!ok) return;
     setBusy(true);
     try {
-      const result = await api<CensorState>('/api/censor', token, { bot, action: 'clear' });
-      setState(result);
+      const result = await api<{ value: CensorState }>('/api/censor', token, {
+        bot,
+        action: 'clear',
+      });
+      setState(result.value);
       setReport(null);
       notify('自定义敏感词已清空');
     } catch (cause) {
@@ -269,49 +286,38 @@ export function CensorPage({ token, bot, notify }: Props) {
 
   return (
     <>
-      <SectionTitle
-        eyebrow="SENSITIVE WORDS"
-        title="敏感词管理"
-        description={scopeHint}
-        action={
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => inputRef.current?.click()}
-              disabled={busy || library}
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              导入
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => void exportWords()}
-              disabled={busy || library || !words.length}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              导出
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => void reloadFromDisk()}
-              disabled={busy}
-            >
-              <RotateCcw className="mr-2 h-4 w-4" />
-              从磁盘刷新
-            </Button>
-          </div>
-        }
-      />
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".json,.txt,application/json,text/plain"
-        className="hidden"
-        onChange={event => void importWords(event.target.files?.[0])}
-      />
+      <SectionTitle eyebrow="SENSITIVE WORDS" title="敏感词管理" description={scopeHint} />
+      <div className="mb-5 flex flex-wrap gap-2">
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".json,.txt,application/json,text/plain"
+          className="hidden"
+          onChange={event => void importWords(event.target.files?.[0])}
+        />
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => inputRef.current?.click()}
+          disabled={busy || library}
+        >
+          <Upload className="mr-2 h-4 w-4" />
+          导入词条
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => void exportWords()}
+          disabled={busy || library || !words.length}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          导出词条
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => void reloadFromDisk()} disabled={busy}>
+          <RotateCcw className="mr-2 h-4 w-4" />
+          从磁盘刷新
+        </Button>
+      </div>
       {loading ? (
         <Busy />
       ) : (
